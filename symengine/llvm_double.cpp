@@ -97,6 +97,7 @@ llvm::Function *LLVMVisitor::get_function_type(llvm::LLVMContext *context)
             llvm::AttrBuilder B;
             B.addAttribute(llvm::Attribute::ReadOnly);
             B.addAttribute(llvm::Attribute::NoCapture);
+            B.addAttribute(llvm::Attribute::NoAlias);
             PAS = llvm::AttributeSet::get(mod->getContext(), 1U, B);
         }
 
@@ -104,6 +105,7 @@ llvm::Function *LLVMVisitor::get_function_type(llvm::LLVMContext *context)
         {
             llvm::AttrBuilder B;
             B.addAttribute(llvm::Attribute::NoCapture);
+            B.addAttribute(llvm::Attribute::NoAlias);
             PAS = llvm::AttributeSet::get(mod->getContext(), 2U, B);
         }
 
@@ -123,6 +125,8 @@ llvm::Function *LLVMVisitor::get_function_type(llvm::LLVMContext *context)
     F->addParamAttr(0, llvm::Attribute::ReadOnly);
     F->addParamAttr(0, llvm::Attribute::NoCapture);
     F->addParamAttr(1, llvm::Attribute::NoCapture);
+    F->addParamAttr(0, llvm::Attribute::NoAlias);
+    F->addParamAttr(1, llvm::Attribute::NoAlias);
     F->addFnAttr(llvm::Attribute::NoUnwind);
     F->addFnAttr(llvm::Attribute::UWTable);
 #endif
