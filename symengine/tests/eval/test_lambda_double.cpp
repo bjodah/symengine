@@ -135,6 +135,32 @@ TEST_CASE("Evaluate to double", "[lambda_double]")
     REQUIRE(::fabs(d - 8.8) < 1e-12);
 }
 
+TEST_CASE("Check lambda_double with empty argument and expression vector", "[lambda_double]")
+{
+    vec_basic exprs;
+    vec_basic args;
+    {
+        LambdaRealDoubleVisitor v;
+        v.init(args, exprs);
+        v.call(nullptr, nullptr);
+    }
+    args.push_back(symbol("x"));
+    {
+        LambdaRealDoubleVisitor v;
+        v.init(args, exprs);
+        v.call(nullptr, nullptr);
+    }
+    args.clear();
+    exprs.push_back(integer(2));
+    {
+        LambdaRealDoubleVisitor v;
+        v.init(args, exprs);
+        double out = 1.0;
+        v.call(&out, nullptr);
+        REQUIRE(out == 2.0);
+    }
+}
+
 TEST_CASE("Evaluate double cse", "[lambda_double_cse]")
 {
     RCP<const Basic> x, y, z, r, s;
@@ -295,6 +321,31 @@ TEST_CASE("Check llvm and lambda are equal", "[llvm_double]")
         d3 = v3.call({1.4, 3.0, -1.0});
         REQUIRE(::fabs((d - d2)) < 1e-12);
         REQUIRE(::fabs((d - d3)) < 1e-12);
+    }
+}
+
+TEST_CASE("Check llvm with empty argument and expression vector", "[llvm_double]") {
+    vec_basic exprs;
+    vec_basic args;
+    {
+        LLVMDoubleVisitor v;
+        v.init(args, exprs);
+        v.call(nullptr, nullptr);
+    }
+    args.push_back(symbol("x"));
+    {
+        LLVMDoubleVisitor v;
+        v.init(args, exprs);
+        v.call(nullptr, nullptr);
+    }
+    args.clear();
+    exprs.push_back(integer(2));
+    {
+        LLVMDoubleVisitor v;
+        v.init(args, exprs);
+        double out = 1.0;
+        v.call(&out, nullptr);
+        REQUIRE(out == 2.0);
     }
 }
 

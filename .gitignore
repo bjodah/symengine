@@ -10,6 +10,7 @@ SymEngineConfig.cmake
 SymEngineConfigVersion.cmake
 SymEngineTargets.cmake
 cmake-build-*
+compile_commands.json
 
 # Cotire
 symengine/cotire
