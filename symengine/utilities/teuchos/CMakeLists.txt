@@ -57,7 +57,7 @@ install(TARGETS teuchos
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         )
 
-if (NOT WITH_SYMENGINE_RCP)
+if (${SYMENGINE_RCP_KIND) STREQUAL "teuchos")
     install(FILES ${HEADERS} "${teuchos_BINARY_DIR}/Teuchos_config.h"
         DESTINATION include/symengine/utilities/teuchos)
 endif()
