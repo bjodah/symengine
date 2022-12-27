@@ -78,7 +78,7 @@ is to use the Debug mode with `BFD` support on:
 
 This `BFD` support turns on nice Python like stack traces on exceptions, assert
 errors or segfaults, and the Debug mode automatically turns on
-`WITH_SYMENGINE_RCP=no` (which uses `Teuchos::RCP` with full Debug time
+`SYMENGINE_RCP_KIND=teuchos` (which uses `Teuchos::RCP` with full Debug time
 checking) and `WITH_SYMENGINE_ASSERT=yes`, so the code cannot segfault in Debug
 mode, as long as our style conventions (e.g. no raw pointers) are followed,
 which is easy to check by visual inspection of a given Pull Request. In Release
@@ -108,7 +108,7 @@ their default values indicated below:
         -DCMAKE_BUILD_TYPE:STRING="Release" \         # Type of build, one of: Debug or Release
         -DWITH_BFD:BOOL=OFF \                         # Install with BFD library (requires binutils-dev)s
         -DWITH_SYMENGINE_ASSERT:BOOL=OFF \            # Test all SYMENGINE_ASSERT statements in the code
-        -DWITH_SYMENGINE_RCP:BOOL=ON \                # Use our faster special implementation of RCP
+        -DSYMENGINE_RCP_KIND:STRING=exclusive \       # Use our faster special implementation of RCP
         -DWITH_SYMENGINE_THREAD_SAFE:BOOL=OFF \       # Build with thread safety
         -DWITH_ECM:BOOL=OFF \                         # Build with GMP-ECM library for integer factorization
         -DWITH_PRIMESIEVE:BOOL=OFF \                  # Install with Primesieve library

@@ -12,11 +12,11 @@
 /* Define if you want to enable GMP support in SymEngine */
 #cmakedefine HAVE_SYMENGINE_GMP
 
-/* Define if you want to enable SYMENGINE_RCP support in SymEngine */
-#cmakedefine WITH_SYMENGINE_RCP
-
 /* Define if you want to enable TEUCHOS support in SymEngine */
 #cmakedefine WITH_SYMENGINE_TEUCHOS
+
+/* Define what kind of reference counted pointer to use */
+#cmakedefine SYMENGINE_RCP_KIND
 
 /* Define if you want to enable SYMENGINE_THREAD_SAFE support in SymEngine */
 #cmakedefine WITH_SYMENGINE_THREAD_SAFE
@@ -79,6 +79,10 @@
 #define SYMENGINE_BOOSTMP 4
 
 #define SYMENGINE_INTEGER_CLASS SYMENGINE_${SYMENGINE_INTEGER_CLASS}
+
+#define SYMENGINE_RCP_KIND_TEUCHOS 0
+#define SYMENGINE_RCP_KIND_EXCLUSIVE 1
+#define SYMENGINE_RCP_KIND_COOPERATIVE 2 /* enables ref counting to be done co-operatively with python */
 
 #define SYMENGINE_SIZEOF_LONG_DOUBLE ${SYMENGINE_SIZEOF_LONG_DOUBLE}
 

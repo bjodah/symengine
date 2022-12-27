@@ -133,7 +133,7 @@ int Add::compare(const Basic &o) const
  *   reused instead.
  *
  *  That is, when `WITH_SYMENGINE_THREAD_SAFE` is not defined and
- *   `WITH_SYMENGINE_RCP` is defined, we can "steal" its dictionary by explictly
+ *   `SYMENGINE_RCP_KIND` is set to SYMENGINE_RCP_KIND_EXCLUSIVE, we can "steal" its dictionary by explictly
  *   casting away the const'ness. Since the `refcount_` is 1, nothing else is
  *   using the `Mul`.
  */
@@ -152,7 +152,7 @@ RCP<const Basic> Add::from_dict(const RCP<const Number> &coef,
                 return p->first; // Integer
             }
             if (is_a<Mul>(*(p->first))) {
-#if !defined(WITH_SYMENGINE_THREAD_SAFE) && defined(WITH_SYMENGINE_RCP)
+#if !defined(WITH_SYMENGINE_THREAD_SAFE) && SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
                 if (down_cast<const Mul &>(*(p->first)).use_count() == 1) {
                     // We can steal the dictionary:
                     // Cast away const'ness, so that we can move 'dict_', since
@@ -189,7 +189,7 @@ RCP<const Basic> Add::from_dict(const RCP<const Number> &coef,
         map_basic_basic m;
         if (is_a_Number(*p->second)) {
             if (is_a<Mul>(*(p->first))) {
-#if !defined(WITH_SYMENGINE_THREAD_SAFE) && defined(WITH_SYMENGINE_RCP)
+#if !defined(WITH_SYMENGINE_THREAD_SAFE) && SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
                 if (down_cast<const Mul &>(*(p->first)).use_count() == 1) {
                     // We can steal the dictionary:
                     // Cast away const'ness, so that we can move 'dict_', since

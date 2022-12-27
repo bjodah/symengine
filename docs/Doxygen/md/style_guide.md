@@ -17,9 +17,12 @@ if (d.find(t) == d.end()) {
 ## Pointers
 
 Never use raw C++ pointers and never use the raw `new` and `delete`. Always use
-the smart pointers provided by `symengine_rcp.h` (depending on
-WITH_SYMENGINE_RCP, those are either Teuchos::RCP, or our own, faster
-implementation), i.e. `Ptr` and `RCP` (and do not use the `.get()` method, only
+the smart pointers provided by `symengine_rcp.h`, depending on
+SYMENGINE_RCP_KIND, those are either "teuchos", or one of our own
+"exclusive" (fast reference counting, cannot easily be shared with
+other reference counting system) or "cooperative" (reference counting
+which is designed to enable co-operative ref. counting with e.g. CPython).
+That is, use `Ptr` and `RCP` (and do not use the `.get()` method, only
 the `.ptr()` method). In Debug mode, the pointers are 100% safe, i.e. no matter
 how you use them the code will not segfault, but instead raise a nice exception
 if a pointer becomes dangling or null. In Release mode, the `Ptr` is as fast as

@@ -52,13 +52,14 @@ typedef struct dcomplex {
 // single RCP<const Basic> member) *and* they must have the same alignment
 // (because we allocate CRCPBasic into the memory occupied by this struct in
 // cwrapper.cpp). We cannot use C++ in this file, so we need to use C tools to
-// arrive at the correct size and alignment.  The size of the RCP object on
-// most platforms (with WITH_SYMENGINE_RCP on) should be just the size of the
-// 'T *ptr_' pointer that it contains (as there is no virtual function table)
-// and the alignment should also be of a pointer.  So we just put 'void *data'
-// as the only member of the struct, that should have the correct size and
-// alignment. With WITH_SYMENGINE_RCP off (i.e. using Teuchos::RCP), we have to
-// add additional members into the structure.
+// arrive at the correct size and alignment.  The size of the RCP
+// object on most platforms (with SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE)
+// should be just the size of the 'T *ptr_' pointer that it contains
+// (as there is no virtual function table) and the alignment should
+// also be of a pointer.  So we just put 'void *data' as the only
+// member of the struct, that should have the correct size and
+// alignment. With SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS,
+// we have to add additional members into the structure.
 //
 // However, this is checked at compile time in cwrapper.cpp, so if the size or
 // alignment is different on some platform, the compilation will fail --- in
@@ -66,7 +67,7 @@ typedef struct dcomplex {
 // and/or alignment.
 struct CRCPBasic_C {
     void *data;
-#if !defined(WITH_SYMENGINE_RCP)
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
     void *teuchos_handle;
     int teuchos_strength;
 #endif

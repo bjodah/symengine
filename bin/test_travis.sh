@@ -104,8 +104,8 @@ fi
 if [[ "${WITH_SYMENGINE_ASSERT}" != "" ]]; then
     cmake_line="$cmake_line -DWITH_SYMENGINE_ASSERT=${WITH_SYMENGINE_ASSERT}"
 fi
-if [[ "${WITH_SYMENGINE_RCP}" != "" ]]; then
-    cmake_line="$cmake_line -DWITH_SYMENGINE_RCP=${WITH_SYMENGINE_RCP}"
+if [[ "${SYMENGINE_RCP_KIND}" != "" ]]; then
+    cmake_line="$cmake_line -DSYMENGINE_RCP_KIND=${SYMENGINE_RCP_KIND}"
 fi
 if [[ "${WITH_SYMENGINE_THREAD_SAFE}" != "" ]]; then
     cmake_line="$cmake_line -DWITH_SYMENGINE_THREAD_SAFE=${WITH_SYMENGINE_THREAD_SAFE}"

@@ -10,24 +10,34 @@
 #include <symengine/symengine_config.h>
 #include <symengine/symengine_assert.h>
 
-#if defined(WITH_SYMENGINE_RCP)
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
 
-#if defined(WITH_SYMENGINE_THREAD_SAFE)
+# if defined(WITH_SYMENGINE_THREAD_SAFE)
 #include <atomic>
-#endif
+# endif
 
-#else
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
 
 // Include all Teuchos headers here:
 #include <symengine/utilities/teuchos/Teuchos_RCP.hpp>
 #include <symengine/utilities/teuchos/Teuchos_TypeNameTraits.hpp>
 
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
+#include <atomic>
+extern "C" {
+    struct _object;
+    typedef _object PyObject;
+};
+void object_init_py(void (*object_inc_ref_py)(PyObject *) noexcept,
+                    void (*object_dec_ref_py)(PyObject *) noexcept);
+#else
+#error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
 
 namespace SymEngine
 {
 
-#if defined(WITH_SYMENGINE_RCP)
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
 
 /* Ptr */
 
@@ -257,7 +267,7 @@ std::string typeName(const T &t)
 
 void print_stack_on_segfault();
 
-#else
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
 
 using Teuchos::null;
 using Teuchos::outArg;
@@ -270,7 +280,12 @@ using Teuchos::rcp_const_cast;
 using Teuchos::rcp_dynamic_cast;
 using Teuchos::rcp_static_cast;
 using Teuchos::typeName;
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
+struct RCP {
 
+};
+#else
+#error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
 
 template <class T>
@@ -281,20 +296,28 @@ public:
     //! Get RCP<T> pointer to self (it will cast the pointer to T)
     inline RCP<T> rcp_from_this()
     {
-#if defined(WITH_SYMENGINE_RCP)
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
         return rcp(static_cast<T *>(this));
-#else
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
         return rcp_static_cast<T>(weak_self_ptr_.create_strong());
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
+        return ...;
+#else
+#error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
     }
 
     //! Get RCP<const T> pointer to self (it will cast the pointer to const T)
     inline RCP<const T> rcp_from_this() const
     {
-#if defined(WITH_SYMENGINE_RCP)
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
         return rcp(static_cast<const T *>(this));
-#else
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
         return rcp_static_cast<const T>(weak_self_ptr_.create_strong());
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
+        return ...;
+#else
+#error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
     }
 
@@ -302,25 +325,33 @@ public:
     template <class T2>
     inline RCP<const T2> rcp_from_this_cast() const
     {
-#if defined(WITH_SYMENGINE_RCP)
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
         return rcp(static_cast<const T2 *>(this));
-#else
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
         return rcp_static_cast<const T2>(weak_self_ptr_.create_strong());
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
+        return ...;
+#else
+#error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
     }
 
     unsigned int use_count() const
     {
-#if defined(WITH_SYMENGINE_RCP)
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
         return refcount_;
-#else
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
         return weak_self_ptr_.strong_count();
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
+        return ...;
+#else
+#error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
     }
 
     // Everything below is private interface
 private:
-#if defined(WITH_SYMENGINE_RCP)
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
 
 //! Public variables if defined with SYMENGINE_RCP
 // The reference counter is defined either as "unsigned int" (faster, but
@@ -340,7 +371,7 @@ public:
     EnableRCPFromThis() : refcount_(0) {}
 
 private:
-#else
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
     mutable RCP<T> weak_self_ptr_;
 
     void set_weak_self_ptr(const RCP<T> &w)
@@ -352,9 +383,19 @@ private:
     {
         weak_self_ptr_ = rcp_const_cast<T>(w);
     }
-#endif // WITH_SYMENGINE_RCP
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
+    mutable std::atomic<unsigned int> count_or_pointer { 1 }; // reference counter
+public:
+    void inc_ref() const noexcept;
+    void dec_ref() const noexcept;
+    PyObject *self_py() const noexcept;
+    void set_self_py(PyObject *self) noexcept;
+private:
+#else
+#error "Unkown value for SYMENGINE_RCP_KIND"
+#endif
 
-#if defined(WITH_SYMENGINE_RCP)
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
     template <class T_>
     friend class RCP;
 #endif
@@ -366,12 +407,16 @@ private:
 template <typename T, typename... Args>
 inline RCP<T> make_rcp(Args &&...args)
 {
-#if defined(WITH_SYMENGINE_RCP)
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
     return rcp(new T(std::forward<Args>(args)...));
-#else
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
     RCP<T> p = rcp(new T(std::forward<Args>(args)...));
     p->set_weak_self_ptr(p.create_weak());
     return p;
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
+
+#else
+#error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
 }
 

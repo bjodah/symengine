@@ -535,22 +535,26 @@ endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     # In Debug mode we use Teuchos::RCP and enable debugging checks that make
     # the usage 100% safe, as long as the Teuchos guidelines are followed.
-    set(WITH_SYMENGINE_RCP_DEFAULT no) # Use the Teuchos::RCP
+    set(SYMENGINE_RCP_KIND_DEFAULT "teuchos")
     set(HAVE_TEUCHOS_DEBUG yes) # Enable safety checks
     set(HAVE_TEUCHOS_DEBUG_RCP_NODE_TRACING yes) # Enable safety checks
 
     set(WITH_SYMENGINE_ASSERT yes) # Also enable assertions
 else ()
-    set(WITH_SYMENGINE_RCP_DEFAULT yes)
+    set(SYMENGINE_RCP_KIND_DEFAULT "exclusive")
 endif()
 
-# SYMENGINE_RCP
-set(WITH_SYMENGINE_RCP ${WITH_SYMENGINE_RCP_DEFAULT}
-    CACHE BOOL "Enable SYMENGINE_RCP support")
+# SYMENGINE_RCP_KIND
+set(SYMENGINE_RCP_KIND ${SYMENGINE_RCP_KIND_DEFAULT} CACHE STRING "Ref. counted pointer impl: teuchos/exclusive/cooperative")
+
+set(INTEGER_CLASS "gmp"
+    CACHE STRING "Integer class for symengine. Either gmp, gmpxx, flint or piranha")
 
 if (WITH_COVERAGE)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} --coverage")
 endif()
+
+if("${SYMENGINE_RCP_KIND}" STREQUAL "teuchos")
 
 if ((NOT WITH_SYMENGINE_RCP) OR HAVE_TEUCHOS_BFD)
     set(WITH_SYMENGINE_TEUCHOS yes)
@@ -678,9 +682,9 @@ message("BUILD_SHARED_LIBS: ${BUILD_SHARED_LIBS}")
 message("INTEGER_CLASS : ${SYMENGINE_INTEGER_CLASS}")
 message("HAVE_SYMENGINE_GMP: ${HAVE_SYMENGINE_GMP}")
 message("WITH_SYMENGINE_ASSERT: ${WITH_SYMENGINE_ASSERT}")
-message("WITH_SYMENGINE_RCP: ${WITH_SYMENGINE_RCP}")
+message("SYMENGINE_RCP_KIND: ${SYMENGINE_RCP_KIND}")
 message("WITH_SYMENGINE_TEUCHOS: ${WITH_SYMENGINE_TEUCHOS}")
-if (NOT WITH_SYMENGINE_RCP)
+if (${SYMENGINE_RCP_KIND} STREQUAL "teuchos")
     message("HAVE_TEUCHOS_DEBUG: ${HAVE_TEUCHOS_DEBUG}")
     message("HAVE_TEUCHOS_DEBUG_RCP_NODE_TRACING: ${HAVE_TEUCHOS_DEBUG_RCP_NODE_TRACING}")
 endif ()
