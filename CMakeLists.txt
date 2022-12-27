@@ -535,17 +535,23 @@ endif()
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     # In Debug mode we use Teuchos::RCP and enable debugging checks that make
     # the usage 100% safe, as long as the Teuchos guidelines are followed.
-    set(SYMENGINE_RCP_KIND_DEFAULT "teuchos")
+    set(SYMENGINE_RCP_KIND_DEFAULT "TEUCHOS")
     set(HAVE_TEUCHOS_DEBUG yes) # Enable safety checks
     set(HAVE_TEUCHOS_DEBUG_RCP_NODE_TRACING yes) # Enable safety checks
 
     set(WITH_SYMENGINE_ASSERT yes) # Also enable assertions
 else ()
-    set(SYMENGINE_RCP_KIND_DEFAULT "exclusive")
+    set(SYMENGINE_RCP_KIND_DEFAULT "EXCLUSIVE")
 endif()
 
 # SYMENGINE_RCP_KIND
-set(SYMENGINE_RCP_KIND ${SYMENGINE_RCP_KIND_DEFAULT} CACHE STRING "Ref. counted pointer impl: teuchos/exclusive/cooperative")
+set(SYMENGINE_RCP_KIND ${SYMENGINE_RCP_KIND_DEFAULT} CACHE STRING "Ref. counted pointer impl: TEUCHOS/EXCLUSIVE/COOPERATIVE")
+string(TOUPPER ${SYMENGINE_RCP_KIND} SYMENGINE_RCP_KIND)
+if(NOT ${SYMENGINE_RCP_KIND} MATCHES "TEUCHOS|EXCLUSIVE|COOPERATIVE")
+    message(FATAL_ERROR "SYMENGINE_RCP_KINDCMAKE must be one of: TEUCHOS|EXCLUSIVE|COOPERATIVE")
+endif()
+
+
 
 set(INTEGER_CLASS "gmp"
     CACHE STRING "Integer class for symengine. Either gmp, gmpxx, flint or piranha")
@@ -554,7 +560,7 @@ if (WITH_COVERAGE)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} --coverage")
 endif()
 
-if(("${SYMENGINE_RCP_KIND}" STREQUAL "teuchos") OR HAVE_TEUCHOS_BFD)
+if(("${SYMENGINE_RCP_KIND}" STREQUAL "TEUCHOS") OR HAVE_TEUCHOS_BFD)
     set(WITH_SYMENGINE_TEUCHOS yes)
 endif()
 
@@ -682,7 +688,7 @@ message("HAVE_SYMENGINE_GMP: ${HAVE_SYMENGINE_GMP}")
 message("WITH_SYMENGINE_ASSERT: ${WITH_SYMENGINE_ASSERT}")
 message("SYMENGINE_RCP_KIND: ${SYMENGINE_RCP_KIND}")
 message("WITH_SYMENGINE_TEUCHOS: ${WITH_SYMENGINE_TEUCHOS}")
-if (${SYMENGINE_RCP_KIND} STREQUAL "teuchos")
+if (${SYMENGINE_RCP_KIND} STREQUAL "TEUCHOS")
     message("HAVE_TEUCHOS_DEBUG: ${HAVE_TEUCHOS_DEBUG}")
     message("HAVE_TEUCHOS_DEBUG_RCP_NODE_TRACING: ${HAVE_TEUCHOS_DEBUG_RCP_NODE_TRACING}")
 endif ()

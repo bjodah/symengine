@@ -1,6 +1,6 @@
 #include <symengine/symengine_rcp.h>
 
-#ifdef SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
 #include <symengine/utilities/teuchos/Teuchos_RCP.hpp>
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
 static void (*object_inc_ref_py)(PyObject *) noexcept = nullptr;
@@ -10,7 +10,7 @@ static void (*object_dec_ref_py)(PyObject *) noexcept = nullptr;
 namespace SymEngine
 {
 
-#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
 
 void print_stack_on_segfault()
 {
@@ -18,7 +18,7 @@ void print_stack_on_segfault()
     Teuchos::print_stack_on_segfault();
 #endif
 }
-#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_EXCLUSIVE
+#elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
 // nothing todo
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
 /* The code in this block is adapted from code in the tests directory of Wenzel

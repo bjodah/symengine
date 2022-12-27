@@ -15,9 +15,6 @@
 /* Define if you want to enable TEUCHOS support in SymEngine */
 #cmakedefine WITH_SYMENGINE_TEUCHOS
 
-/* Define what kind of reference counted pointer to use */
-#cmakedefine SYMENGINE_RCP_KIND
-
 /* Define if you want to enable SYMENGINE_THREAD_SAFE support in SymEngine */
 #cmakedefine WITH_SYMENGINE_THREAD_SAFE
 
@@ -83,6 +80,10 @@
 #define SYMENGINE_RCP_KIND_TEUCHOS 0
 #define SYMENGINE_RCP_KIND_EXCLUSIVE 1
 #define SYMENGINE_RCP_KIND_COOPERATIVE 2 /* enables ref counting to be done co-operatively with python */
+
+/* Define what kind of reference counted pointer to use */
+#define SYMENGINE_RCP_KIND SYMENGINE_RCP_KIND_${SYMENGINE_RCP_KIND}
+
 
 #define SYMENGINE_SIZEOF_LONG_DOUBLE ${SYMENGINE_SIZEOF_LONG_DOUBLE}
 
