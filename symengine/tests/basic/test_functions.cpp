@@ -43,6 +43,7 @@ using SymEngine::atanh;
 using SymEngine::Basic;
 using SymEngine::Beta;
 using SymEngine::beta;
+using SymEngine::boolTrue;
 using SymEngine::Complex;
 using SymEngine::complex_double;
 using SymEngine::ComplexDouble;
@@ -94,6 +95,7 @@ using SymEngine::loggamma;
 using SymEngine::LogGamma;
 using SymEngine::lowergamma;
 using SymEngine::LowerGamma;
+using SymEngine::Le;
 using SymEngine::make_rcp;
 using SymEngine::max;
 using SymEngine::Max;
@@ -108,6 +110,7 @@ using SymEngine::NegInf;
 using SymEngine::Number;
 using SymEngine::one;
 using SymEngine::pi;
+using SymEngine::piecewise;
 using SymEngine::polygamma;
 using SymEngine::PolyGamma;
 using SymEngine::Pow;
@@ -4159,6 +4162,13 @@ TEST_CASE("min: functions", "[functions]")
     CHECK_THROWS_AS(min({}), SymEngineException);
 
     CHECK_THROWS_AS(min({c}), SymEngineException);
+
+    res = min({x, i2})->diff(x);
+    auto heaviside_x_i2 =
+        piecewise({{x, Le(x, i2)},{i2, boolTrue}});
+    std::cout << res->__str__() << std::endl;
+    std::cout << heaviside_x_i2->__str__() << std::endl;
+    REQUIRE(eq(*res, *heaviside_x_i2));
 }
 
 TEST_CASE("test_dummy", "[Dummy]")
