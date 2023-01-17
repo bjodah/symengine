@@ -1,4 +1,6 @@
 #include "catch.hpp"
+#include "symengine/dict.h"
+#include "symengine/real_double.h"
 #include <chrono>
 
 #include <symengine/add.h>
@@ -4163,12 +4165,40 @@ TEST_CASE("min: functions", "[functions]")
 
     CHECK_THROWS_AS(min({c}), SymEngineException);
 
-    res = min({x, i2})->diff(x);
-    auto heaviside_x_i2 =
-        piecewise({{x, Le(x, i2)},{i2, boolTrue}});
+    RCP<const Basic> em300 = real_double(1e-300);
+    RCP<const Basic> min_x_2 = min({x, em300});
+    RCP<const Basic> max_x_2 = max({x, em300});
+    RCP<const Basic> min_2_x = min({em300, x});
+    RCP<const Basic> max_2_x = max({em300, x});
+
+    res = min_x_2->diff(x);
+    RCP<const Basic> ref = Derivative::create(min_x_2, {x});
+    if (false) {
+        auto heaviside_x_em300 = piecewise({{x, Le(x, em300)},{em300, boolTrue}});
+        ref = heaviside_x_em300;
+    }
     std::cout << res->__str__() << std::endl;
-    std::cout << heaviside_x_i2->__str__() << std::endl;
-    REQUIRE(eq(*res, *heaviside_x_i2));
+    std::cout << ref->__str__() << std::endl;
+    REQUIRE(eq(*res, *ref));
+
+    res = max_x_2->diff(x);
+    ref = Derivative::create(max_x_2, {x});
+    std::cout << res->__str__() << std::endl;
+    std::cout << ref->__str__() << std::endl;
+    REQUIRE(eq(*res, *ref));
+
+    res = min_2_x->diff(x);
+    ref = Derivative::create(min_2_x, {x});
+    std::cout << res->__str__() << std::endl;
+    std::cout << ref->__str__() << std::endl;
+    REQUIRE(eq(*res, *ref));
+
+    res = max_2_x->diff(x);
+    ref = Derivative::create(max_2_x, {x});
+    std::cout << res->__str__() << std::endl;
+    std::cout << ref->__str__() << std::endl;
+    REQUIRE(eq(*res, *ref));
+
 }
 
 TEST_CASE("test_dummy", "[Dummy]")

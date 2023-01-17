@@ -1,4 +1,5 @@
 #include "catch.hpp"
+#include "symengine/symengine_rcp.h"
 
 #include <symengine/visitor.h>
 #include <symengine/eval_double.h>
@@ -55,6 +56,7 @@ using SymEngine::piecewise;
 using SymEngine::pow;
 using SymEngine::Rational;
 using SymEngine::rational;
+using SymEngine::rcp_static_cast;
 using SymEngine::RCP;
 using SymEngine::real_double;
 using SymEngine::RealDouble;
@@ -395,6 +397,151 @@ TEST_CASE("Parsing: functions", "[parser]")
     res = parse(s);
     REQUIRE(eq(*res, *max({x, y})));
     REQUIRE(eq(*res, *parse(res->__str__())));
+
+    std::vector<std::string> exprs {{
+        "0.000349206349206349*__conc__vacancy__leftparenads__rightparen*__conc__H2O2",
+        "0.698412698412698*__conc__UO2__plus2__leftparenads__rightparen*__conc__HCO3__minus",
+        "0.698412698412698*__conc__OH*__conc__vacancy__leftparenads__rightparen",
+        "0.00238095238095238*__conc__OH__leftparenads__rightparen*__conc__H2O2",
+        "1000.0*__conc__OH__leftparenads__rightparen*__conc__UO2__plus__leftparenads__rightparen",
+        "1000.0*__conc__UO2__plus__leftparenads__rightparen**2",
+        "Piecewise((0, log(max(1e-300, __conc__UO2)) < -80.5904782547916), (0.0015*__conc__OH__leftparenads__rightparen, -69.0775527898214 < log(max(1e-300, __conc__UO2))), (0.0015*__conc__OH__leftparenads__rightparen*(1 + log(max(1e-300, __conc__UO2)**0.0124084137686643))**2*(-538.999999999999 + log(max(1e-300, __conc__UO2)**(-8.51217184530372))), True))",
+        "0.000333333333333333*__conc__UO2__plus2__leftparenads__rightparen",
+        "8500.0*__conc__OH*__conc__HCO3__minus",
+        "430.0*__conc__CO3__minus*__conc__H2O2",
+        "30000.0*__conc__CO3__minus*__conc__HO2__minus",
+        "650000.0*__conc__O2__minus*__conc__CO3__minus",
+        "10000000.0*__conc__e__minus__leftparenaq__rightparen*__conc__CO3__minus",
+        "Piecewise((0, log(max(1e-300, __conc__H2O)) < -80.5904782547916), (6200626.82484752*__conc__e__minus__leftparenaq__rightparen**2, -69.0775527898214 < log(max(1e-300, __conc__H2O))), ((1 + log(max(1e-300, __conc__H2O)**0.0124084137686643))**2*__conc__e__minus__leftparenaq__rightparen**2*(-3342137858.59281 + log(max(1e-300, __conc__H2O)**(-52780801.0817022))), True))",
+        "4620709.39731807*__conc__H**2",
+        "4536021.3300302*__conc__OH**2",
+        "Piecewise((0, log(max(1e-300, __conc__H2O)) < -80.5904782547916), (24924110.5660708*__conc__H*__conc__e__minus__leftparenaq__rightparen, -69.0775527898214 < log(max(1e-300, __conc__H2O))), (24924110.5660709*__conc__H*(1 + log(max(1e-300, __conc__H2O)**0.0124084137686643))**2*__conc__e__minus__leftparenaq__rightparen*(-538.999999999999 + log(max(1e-300, __conc__H2O)**(-8.51217184530372))), True))",
+        "33238768.051631*__conc__OH*__conc__e__minus__leftparenaq__rightparen",
+        "10275115.8595692*__conc__H*__conc__OH",
+        "12220669.8944137*__conc__e__minus__leftparenaq__rightparen*__conc__H2O2",
+        "21140386.2924871*__conc__O2*__conc__e__minus__leftparenaq__rightparen",
+        "Piecewise((0, log(max(1e-300, __conc__H2O)) < -80.5904782547916), (11871356.3110209*__conc__e__minus__leftparenaq__rightparen*__conc__O2__minus, -69.0775527898214 < log(max(1e-300, __conc__H2O))), (11871356.3110209*(1 + log(max(1e-300, __conc__H2O)**0.0124084137686643))**2*__conc__e__minus__leftparenaq__rightparen*__conc__O2__minus*(-538.999999999999 + log(max(1e-300, __conc__H2O)**(-8.51217184530372))), True))",
+        "11871356.3110209*__conc__e__minus__leftparenaq__rightparen*__conc__HO2",
+        "31578.1897985995*__conc__H*__conc__H2O2",
+        "12015958.5983891*__conc__H*__conc__O2",
+        "10256125.230883*__conc__H*__conc__HO2",
+        "10256125.230883*__conc__H*__conc__O2__minus",
+        "26548.3888219695*__conc__OH*__conc__H2O2",
+        "10183488.2520753*__conc__OH*__conc__O2__minus",
+        "8444902.82990795*__conc__OH*__conc__HO2",
+        "731.489168803048*__conc__HO2**2",
+        "Piecewise((0, log(max(1e-300, __conc__H2O)) < -80.5904782547916), (96005.2584069745*__conc__O2__minus*__conc__HO2, -69.0775527898214 < log(max(1e-300, __conc__H2O))), (96005.2584069747*(1 + log(max(1e-300, __conc__H2O)**0.0124084137686643))**2*__conc__O2__minus*(-538.999999999999 + log(max(1e-300, __conc__H2O)**(-8.51217184530372)))*__conc__HO2, True))",
+        "3746670.92546473*__conc__OH*__conc__HO2__minus",
+        "3746670.92546473*__conc__O__minus*__conc__H2O2",
+        "665070.384335474*__conc__O__minus*__conc__HO2__minus",
+        "117074.023578097*__conc__O__minus*__conc__H2",
+        "1.2881201024645e-05*__conc__H2O",
+        "106178291.747999*__conc__OH__minus*__conc__H__plus",
+        "0.0649356540602758*__conc__H2O2",
+        "45234915.0744701*__conc__H__plus*__conc__HO2__minus",
+        "11792990.8652464*__conc__OH__minus*__conc__H2O2",
+        "996.632731344054*__conc__HO2__minus*__conc__H2O",
+        "0.0649356540602758*__conc__OH",
+        "45234915.0744701*__conc__O__minus*__conc__H__plus",
+        "11792990.8652464*__conc__OH*__conc__OH__minus",
+        "996.632731344054*__conc__O__minus*__conc__H2O",
+        "661666.634542969*__conc__HO2",
+        "45234915.0744701*__conc__O2__minus*__conc__H__plus",
+        "11792990.8652464*__conc__OH__minus*__conc__HO2",
+        "9.78090701405959e-05*__conc__O2__minus*__conc__H2O",
+        "3.66763381303566*__conc__H",
+        "20037006.9106166*__conc__e__minus__leftparenaq__rightparen*__conc__H__plus",
+        "18595.9742536139*__conc__H*__conc__OH__minus",
+        "0.0123249861586957*__conc__e__minus__leftparenaq__rightparen*__conc__H2O",
+        "2.24871311253666e-08*__conc__H*__conc__H2O",
+        "33977.6550529928*__conc__H2*__conc__OH",
+        "3469910.38361801*__conc__O__minus*__conc__O2",
+        "1904.80713245733*__conc__O3__minus",
+        "1.0*fc_UO21CO31*flowrate_volume",
+        "1.0*__conc____leftparenUO2__rightparen1__leftparenCO3__rightparen1*flowrate_volume",
+        "1.0*fc_Hp*flowrate_volume",
+        "1.0*flowrate_volume*__conc__H__plus",
+        "1.0*fc_H2O*flowrate_volume",
+        "1.0*flowrate_volume*__conc__H2O",
+        "1.0*fc_H2O2*flowrate_volume",
+        "1.0*flowrate_volume*__conc__H2O2",
+        "1.0*flowrate_volume*fc_HCO3m",
+        "1.0*flowrate_volume*__conc__HCO3__minus",
+        "1.0*fc_HO2*flowrate_volume",
+        "1.0*flowrate_volume*__conc__HO2",
+        "1.0*fc_OH*flowrate_volume",
+        "1.0*__conc__OH*flowrate_volume",
+        "1.0*fc_OHm*flowrate_volume",
+        "1.0*flowrate_volume*__conc__OH__minus",
+        "1.0*flowrate_volume*fc_UO2p2",
+        "1.0*flowrate_volume*__conc__UO2__plus2",
+        "1.0*fc_CO3m*flowrate_volume",
+        "1.0*flowrate_volume*__conc__CO3__minus",
+        "1.0*flowrate_volume*fc_CO3m2",
+        "1.0*__conc__CO3__minus2*flowrate_volume",
+        "1.0*fc_HO2m*flowrate_volume",
+        "1.0*flowrate_volume*__conc__HO2__minus",
+        "1.0*fc_O2*flowrate_volume",
+        "1.0*__conc__O2*flowrate_volume",
+        "1.0*fc_O2m*flowrate_volume",
+        "1.0*flowrate_volume*__conc__O2__minus",
+        "1.0*fc_emaq*flowrate_volume",
+        "1.0*flowrate_volume*__conc__e__minus__leftparenaq__rightparen",
+        "1.0*fc_H2*flowrate_volume",
+        "1.0*__conc__H2*flowrate_volume",
+        "1.0*fc_H*flowrate_volume",
+        "1.0*__conc__H*flowrate_volume",
+        "1.0*fc_Om*flowrate_volume",
+        "1.0*__conc__O__minus*flowrate_volume",
+        "1.0*fc_O3m*flowrate_volume",
+        "1.0*flowrate_volume*__conc__O3__minus"
+    }};
+    std::vector<std::string> symbs {{
+        "__conc____leftparenUO2__rightparen1__leftparenCO3__rightparen1",
+        "__conc__H__plus",
+        "__conc__H2O",
+        "__conc__H2O2",
+        "__conc__HCO3__minus",
+        "__conc__HO2",
+        "__conc__OH",
+        "__conc__OH__leftparenads__rightparen",
+        "__conc__OH__minus",
+        "__conc__UO2",
+        "__conc__UO2__plus__leftparenads__rightparen",
+        "__conc__UO2__plus2",
+        "__conc__UO2__plus2__leftparenads__rightparen",
+        "__conc__vacancy__leftparenads__rightparen",
+        "__conc__CO3__minus",
+        "__conc__CO3__minus2",
+        "__conc__HO2__minus",
+        "__conc__O2",
+        "__conc__O2__minus",
+        "__conc__e__minus__leftparenaq__rightparen",
+        "__conc__H2",
+        "__conc__H",
+        "__conc__O__minus",
+        "__conc__O3__minus"
+    }};
+    for (auto expr_s : exprs) {
+        res = parse(expr_s);
+        for (auto symb_s : symbs) {
+            auto result = res->diff(symbol(symb_s));
+            for (auto symb2_s : symbs) {
+                auto result2 = result->diff(symbol(symb2_s));
+                if (!eq(*result2, *zero)) {
+                    std::cout << result2->__str__() << '\n';
+                }
+            }
+            //REQUIRE(!eq(*result, *zero));
+        }
+    }
+
+    s = "max(1e-300, x)";
+    s = "Piecewise((0, log(max(1e-300, __conc__UO2)) < -80.5904782547916), (0.0015*__conc__OH__leftparenads__rightparen, -69.0775527898214 < log(max(1e-300, __conc__UO2))), (0.0015*__conc__OH__leftparenads__rightparen*(1 + log(max(1e-300, __conc__UO2)**0.0124084137686643))**2*(-538.999999999999 + log(max(1e-300, __conc__UO2)**(-8.51217184530372))), True))";
+    res = parse(s);
+    res = res->diff(symbol("__conc__UO2"));
+    res->diff(rcp_static_cast<const Symbol>(x));
+    REQUIRE(eq(*res, *max({real_double(1e-300), x})));
 
     s = "sin(max(log(x, y), min(x, y)))";
     res = parse(s);
