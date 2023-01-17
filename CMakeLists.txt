@@ -4,7 +4,7 @@ if (POLICY CMP0074)
 endif()
 set(CMAKE_USER_MAKE_RULES_OVERRIDE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/UserOverride.cmake)
 
-project(symengine)
+project(symengine LANGUAGES C CXX)
 
 set(SYMENGINE_MAJOR_VERSION 0)
 set(SYMENGINE_MINOR_VERSION 9)
