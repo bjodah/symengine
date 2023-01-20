@@ -24,10 +24,13 @@
 
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
 #include <atomic>
-extern "C" {
-    struct _object;
-    typedef _object PyObject;
-};
+#if !defined(Py_LIMITED_API)
+#define Py_LIMITED_API 0x030B0000 // 3.11
+#include <Python.h>
+// extern "C" {
+//     struct _object;
+//     typedef _object PyObject;
+// };
 void object_init_py(void (*object_inc_ref_py)(PyObject *) noexcept,
                     void (*object_dec_ref_py)(PyObject *) noexcept);
 #else
@@ -281,8 +284,30 @@ using Teuchos::rcp_dynamic_cast;
 using Teuchos::rcp_static_cast;
 using Teuchos::typeName;
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
-struct RCP {
-
+template <typename T>
+class Ptr {
+protected:
+    mutable std::atomic<uintptr_t> count_or_pointer { 1 }; // reference counter
+public:
+    Ptr() = default;
+    Ptr(const Ptr&) : Ptr() { }
+    Ptr(Ptr &&) : Ptr() {}
+    Ptr& operator=(const Ptr&) { return *this; }
+    Ptr& operator=(Ptr&&) { return *this; }
+    virtual ~Ptr() = default;
+    void inc_ref() const noexcept;
+    void dec_ref() const noexcept;
+    PyObject* self_py() const noexcept;
+    void set_self_py(PyObject *self) noexcept;
+};
+template <typename T>
+class RCP {
+    T * m_ptr;
+    RCP(T * ptr) : m_ptr(ptr) {
+        if (ptr) {
+            (()ptr)->inc_ref();
+        }
+    }
 };
 #else
 #error "Unkown value for SYMENGINE_RCP_KIND"
@@ -290,6 +315,9 @@ struct RCP {
 
 template <class T>
 class EnableRCPFromThis
+#if SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
+    : public Ptr<T>
+#endif
 {
     // Public interface
 public:
@@ -301,7 +329,7 @@ public:
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
         return rcp_static_cast<T>(weak_self_ptr_.create_strong());
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
-        return ...;
+        return rcp(static_cast<T *>(this));
 #else
 #error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
@@ -315,7 +343,7 @@ public:
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
         return rcp_static_cast<const T>(weak_self_ptr_.create_strong());
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
-        return ...;
+        return rcp(static_cast<const T *>(this));
 #else
 #error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
@@ -330,7 +358,7 @@ public:
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
         return rcp_static_cast<const T2>(weak_self_ptr_.create_strong());
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
-        return ...;
+        return rcp(static_cast<const T2 *>(this));
 #else
 #error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
@@ -343,7 +371,12 @@ public:
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_TEUCHOS
         return weak_self_ptr_.strong_count();
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
-        return ...;
+        uintptr_t value = this->count_or_pointer.load(std::memory_order_relaxed);
+        if (value & 1) {
+            return value >> 1;
+        } else {
+            return ((PyObject *)value)->ob_refcnt;
+        }
 #else
 #error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
@@ -384,13 +417,7 @@ private:
         weak_self_ptr_ = rcp_const_cast<T>(w);
     }
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
-    mutable std::atomic<unsigned int> count_or_pointer { 1 }; // reference counter
-public:
-    void inc_ref() const noexcept;
-    void dec_ref() const noexcept;
-    PyObject *self_py() const noexcept;
-    void set_self_py(PyObject *self) noexcept;
-private:
+    // pass
 #else
 #error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
@@ -414,7 +441,7 @@ inline RCP<T> make_rcp(Args &&...args)
     p->set_weak_self_ptr(p.create_weak());
     return p;
 #elif SYMENGINE_RCP_KIND == SYMENGINE_RCP_KIND_COOPERATIVE
-
+    return rcp(new T(std::forward<Args>(args)...));
 #else
 #error "Unkown value for SYMENGINE_RCP_KIND"
 #endif
