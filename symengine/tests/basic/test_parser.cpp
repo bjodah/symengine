@@ -1,3 +1,4 @@
+
 #include "catch.hpp"
 
 #include <symengine/visitor.h>
@@ -13,6 +14,8 @@ using SymEngine::boolFalse;
 using SymEngine::boolTrue;
 using SymEngine::Complex;
 using SymEngine::ComplexInf;
+using SymEngine::Derivative;
+using SymEngine::diff;
 using SymEngine::down_cast;
 using SymEngine::E;
 using SymEngine::Eq;
@@ -56,6 +59,7 @@ using SymEngine::pow;
 using SymEngine::Rational;
 using SymEngine::rational;
 using SymEngine::RCP;
+using SymEngine::rcp_static_cast;
 using SymEngine::real_double;
 using SymEngine::RealDouble;
 using SymEngine::Symbol;
@@ -624,6 +628,32 @@ TEST_CASE("Parsing: functions", "[parser]")
     res = parse(s);
     REQUIRE(eq(*res, *piecewise({{mul(integer(2), x), boolTrue}})));
     REQUIRE(eq(*res, *parse(res->__str__())));
+
+    {
+        s = "Derivative(f(x), x)";
+        res = parse(s);
+        REQUIRE(is_a<Derivative>(*res));
+
+        RCP<const Basic> fx = function_symbol("f", x);
+        RCP<const Basic> dfdx = diff(fx, rcp_static_cast<const Symbol>(x), false);
+        REQUIRE(eq(*res, *dfdx));
+
+        s = "Derivative(f(x), x, x)";
+        res = parse(s);
+        RCP<const Basic> d2fdx2 = diff(dfdx, rcp_static_cast<const Symbol>(x), false);
+        REQUIRE(eq(*res, *d2fdx2));
+    }
+    {
+        s = "g(x, y) - Derivative(g(x, y), x, x, x, y, y)";
+        res = parse(s);
+        RCP<const Basic> gxy = function_symbol("g", {x, y});
+        RCP<const Basic> d5gdx3dy2 = diff(gxy, rcp_static_cast<const Symbol>(x), false);
+        for (int i=0; i<2; ++i) {
+            d5gdx3dy2 = diff(d5gdx3dy2, rcp_static_cast<const Symbol>(x), false);
+            d5gdx3dy2 = diff(d5gdx3dy2, rcp_static_cast<const Symbol>(y), false);
+        }
+        REQUIRE(eq(*res, *d5gdx3dy2));
+    }
 }
 
 TEST_CASE("Parsing: constants", "[parser]")

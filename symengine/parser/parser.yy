@@ -63,6 +63,7 @@ void parser::error(const std::string &msg)
 
 }
 
+%token <std::string> DERIVATIVE
 %token <std::string> PIECEWISE
 %token <std::string> IDENTIFIER
 %token <std::string> NUMERIC
@@ -92,6 +93,7 @@ void parser::error(const std::string &msg)
 %type <SymEngine::PiecewiseVec> piecewise_list
 %type <std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>>> epair
 %type <SymEngine::RCP<const SymEngine::Basic>> pwise
+%type <SymEngine::RCP<const SymEngine::Basic>> deriv
 %type <SymEngine::RCP<const SymEngine::Basic>> leaf
 %type <SymEngine::RCP<const SymEngine::Basic>> func
 
@@ -218,6 +220,11 @@ leaf:
     {
         $$ = $1;
     }
+|
+    deriv
+    {
+        $$ = $1;
+    }
 ;
 
 func:
@@ -227,6 +234,13 @@ func:
     }
 ;
 
+deriv:
+    DERIVATIVE '(' func ',' expr_list ')'
+    {
+        assert($1 == "Derivative");
+        SymEngine::multiset_basic mset($4 .begin(), $4 .end()));
+        $$ = Derivative::create($3, mset);
+    }
 
 epair:
     '(' expr ',' expr ')'
