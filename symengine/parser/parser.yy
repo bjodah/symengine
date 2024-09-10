@@ -211,6 +211,11 @@ leaf:
         $$ = p.parse_numeric($1);
     }
 |
+    deriv
+    {
+        $$ = $1;
+    }
+|
     func
     {
         $$ = $1;
@@ -220,10 +225,15 @@ leaf:
     {
         $$ = $1;
     }
-|
-    deriv
+;
+
+
+deriv:
+    DERIVATIVE '(' func ',' expr_list ')'
     {
-        $$ = $1;
+        assert($1 == "Derivative");
+        SymEngine::multiset_basic mset($5 .begin(), $5 .end());
+        $$ = SymEngine::Derivative::create($3, mset);
     }
 ;
 
@@ -233,14 +243,6 @@ func:
         $$ = p.functionify($1, $3);
     }
 ;
-
-deriv:
-    DERIVATIVE '(' func ',' expr_list ')'
-    {
-        assert($1 == "Derivative");
-        SymEngine::multiset_basic mset($4 .begin(), $4 .end()));
-        $$ = Derivative::create($3, mset);
-    }
 
 epair:
     '(' expr ',' expr ')'

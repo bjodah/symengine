@@ -44,7 +44,6 @@
 // Unqualified %code blocks.
 #line 22 "parser.yy"
 
-#include "symengine/basic.h"
 #include "symengine/pow.h"
 #include "symengine/logic.h"
 #include "symengine/parser/parser.h"
@@ -87,7 +86,7 @@ void parser::error(const std::string &msg)
 }
 
 
-#line 91 "parser.tab.cc"
+#line 90 "parser.tab.cc"
 
 
 #ifndef YY_
@@ -160,7 +159,7 @@ void parser::error(const std::string &msg)
 #define YYRECOVERING()  (!!yyerrstatus_)
 
 namespace yy {
-#line 164 "parser.tab.cc"
+#line 163 "parser.tab.cc"
 
   /// Build a parser object.
   parser::parser (SymEngine::Parser &p_yyarg)
@@ -198,6 +197,7 @@ namespace yy {
       case symbol_kind::S_st_expr: // st_expr
       case symbol_kind::S_expr: // expr
       case symbol_kind::S_leaf: // leaf
+      case symbol_kind::S_deriv: // deriv
       case symbol_kind::S_func: // func
       case symbol_kind::S_pwise: // pwise
         value.copy< SymEngine::RCP<const SymEngine::Basic> > (YY_MOVE (that.value));
@@ -211,6 +211,7 @@ namespace yy {
         value.copy< std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_DERIVATIVE: // DERIVATIVE
       case symbol_kind::S_PIECEWISE: // PIECEWISE
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_NUMERIC: // NUMERIC
@@ -256,6 +257,7 @@ namespace yy {
       case symbol_kind::S_st_expr: // st_expr
       case symbol_kind::S_expr: // expr
       case symbol_kind::S_leaf: // leaf
+      case symbol_kind::S_deriv: // deriv
       case symbol_kind::S_func: // func
       case symbol_kind::S_pwise: // pwise
         value.move< SymEngine::RCP<const SymEngine::Basic> > (YY_MOVE (s.value));
@@ -269,6 +271,7 @@ namespace yy {
         value.move< std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > (YY_MOVE (s.value));
         break;
 
+      case symbol_kind::S_DERIVATIVE: // DERIVATIVE
       case symbol_kind::S_PIECEWISE: // PIECEWISE
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_NUMERIC: // NUMERIC
@@ -383,6 +386,7 @@ namespace yy {
       case symbol_kind::S_st_expr: // st_expr
       case symbol_kind::S_expr: // expr
       case symbol_kind::S_leaf: // leaf
+      case symbol_kind::S_deriv: // deriv
       case symbol_kind::S_func: // func
       case symbol_kind::S_pwise: // pwise
         value.YY_MOVE_OR_COPY< SymEngine::RCP<const SymEngine::Basic> > (YY_MOVE (that.value));
@@ -396,6 +400,7 @@ namespace yy {
         value.YY_MOVE_OR_COPY< std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_DERIVATIVE: // DERIVATIVE
       case symbol_kind::S_PIECEWISE: // PIECEWISE
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_NUMERIC: // NUMERIC
@@ -425,6 +430,7 @@ namespace yy {
       case symbol_kind::S_st_expr: // st_expr
       case symbol_kind::S_expr: // expr
       case symbol_kind::S_leaf: // leaf
+      case symbol_kind::S_deriv: // deriv
       case symbol_kind::S_func: // func
       case symbol_kind::S_pwise: // pwise
         value.move< SymEngine::RCP<const SymEngine::Basic> > (YY_MOVE (that.value));
@@ -438,6 +444,7 @@ namespace yy {
         value.move< std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_DERIVATIVE: // DERIVATIVE
       case symbol_kind::S_PIECEWISE: // PIECEWISE
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_NUMERIC: // NUMERIC
@@ -467,6 +474,7 @@ namespace yy {
       case symbol_kind::S_st_expr: // st_expr
       case symbol_kind::S_expr: // expr
       case symbol_kind::S_leaf: // leaf
+      case symbol_kind::S_deriv: // deriv
       case symbol_kind::S_func: // func
       case symbol_kind::S_pwise: // pwise
         value.copy< SymEngine::RCP<const SymEngine::Basic> > (that.value);
@@ -480,6 +488,7 @@ namespace yy {
         value.copy< std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > (that.value);
         break;
 
+      case symbol_kind::S_DERIVATIVE: // DERIVATIVE
       case symbol_kind::S_PIECEWISE: // PIECEWISE
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_NUMERIC: // NUMERIC
@@ -507,6 +516,7 @@ namespace yy {
       case symbol_kind::S_st_expr: // st_expr
       case symbol_kind::S_expr: // expr
       case symbol_kind::S_leaf: // leaf
+      case symbol_kind::S_deriv: // deriv
       case symbol_kind::S_func: // func
       case symbol_kind::S_pwise: // pwise
         value.move< SymEngine::RCP<const SymEngine::Basic> > (that.value);
@@ -520,6 +530,7 @@ namespace yy {
         value.move< std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > (that.value);
         break;
 
+      case symbol_kind::S_DERIVATIVE: // DERIVATIVE
       case symbol_kind::S_PIECEWISE: // PIECEWISE
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_NUMERIC: // NUMERIC
@@ -787,6 +798,7 @@ namespace yy {
       case symbol_kind::S_st_expr: // st_expr
       case symbol_kind::S_expr: // expr
       case symbol_kind::S_leaf: // leaf
+      case symbol_kind::S_deriv: // deriv
       case symbol_kind::S_func: // func
       case symbol_kind::S_pwise: // pwise
         yylhs.value.emplace< SymEngine::RCP<const SymEngine::Basic> > ();
@@ -800,6 +812,7 @@ namespace yy {
         yylhs.value.emplace< std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > ();
         break;
 
+      case symbol_kind::S_DERIVATIVE: // DERIVATIVE
       case symbol_kind::S_PIECEWISE: // PIECEWISE
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_NUMERIC: // NUMERIC
@@ -822,40 +835,40 @@ namespace yy {
           switch (yyn)
             {
   case 2: // st_expr: expr
-#line 104 "parser.yy"
+#line 105 "parser.yy"
     {
         yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ();
         p.res = yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > ();
     }
-#line 831 "parser.tab.cc"
+#line 844 "parser.tab.cc"
     break;
 
   case 3: // expr: expr '+' expr
-#line 112 "parser.yy"
+#line 113 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = add(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 837 "parser.tab.cc"
+#line 850 "parser.tab.cc"
     break;
 
   case 4: // expr: expr '-' expr
-#line 115 "parser.yy"
+#line 116 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = sub(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 843 "parser.tab.cc"
+#line 856 "parser.tab.cc"
     break;
 
   case 5: // expr: expr '*' expr
-#line 118 "parser.yy"
+#line 119 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = mul(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 849 "parser.tab.cc"
+#line 862 "parser.tab.cc"
     break;
 
   case 6: // expr: expr '/' expr
-#line 121 "parser.yy"
+#line 122 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = div(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 855 "parser.tab.cc"
+#line 868 "parser.tab.cc"
     break;
 
   case 7: // expr: IMPLICIT_MUL POW expr
-#line 126 "parser.yy"
+#line 127 "parser.yy"
         {
           auto tup = p.parse_implicit_mul(yystack_[2].value.as < std::string > ());
           if (neq(*std::get<1>(tup), *one)) {
@@ -864,165 +877,183 @@ namespace yy {
             yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = pow(std::get<0>(tup), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ());
           }
         }
-#line 868 "parser.tab.cc"
+#line 881 "parser.tab.cc"
     break;
 
   case 8: // expr: expr POW expr
-#line 136 "parser.yy"
+#line 137 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = pow(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 874 "parser.tab.cc"
+#line 887 "parser.tab.cc"
     break;
 
   case 9: // expr: expr '<' expr
-#line 139 "parser.yy"
+#line 140 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(Lt(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ())); }
-#line 880 "parser.tab.cc"
+#line 893 "parser.tab.cc"
     break;
 
   case 10: // expr: expr '>' expr
-#line 142 "parser.yy"
+#line 143 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(Gt(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ())); }
-#line 886 "parser.tab.cc"
+#line 899 "parser.tab.cc"
     break;
 
   case 11: // expr: expr NE expr
-#line 145 "parser.yy"
+#line 146 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(Ne(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ())); }
-#line 892 "parser.tab.cc"
+#line 905 "parser.tab.cc"
     break;
 
   case 12: // expr: expr LE expr
-#line 148 "parser.yy"
+#line 149 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(Le(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ())); }
-#line 898 "parser.tab.cc"
+#line 911 "parser.tab.cc"
     break;
 
   case 13: // expr: expr GE expr
-#line 151 "parser.yy"
+#line 152 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(Ge(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ())); }
-#line 904 "parser.tab.cc"
+#line 917 "parser.tab.cc"
     break;
 
   case 14: // expr: expr EQ expr
-#line 154 "parser.yy"
+#line 155 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(Eq(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ())); }
-#line 910 "parser.tab.cc"
+#line 923 "parser.tab.cc"
     break;
 
   case 15: // expr: expr '|' expr
-#line 157 "parser.yy"
+#line 158 "parser.yy"
         {
             set_boolean s;
             s.insert(rcp_static_cast<const Boolean>(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > ()));
             s.insert(rcp_static_cast<const Boolean>(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()));
             yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(logical_or(s));
         }
-#line 921 "parser.tab.cc"
+#line 934 "parser.tab.cc"
     break;
 
   case 16: // expr: expr '&' expr
-#line 165 "parser.yy"
+#line 166 "parser.yy"
         {
             set_boolean s;
             s.insert(rcp_static_cast<const Boolean>(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > ()));
             s.insert(rcp_static_cast<const Boolean>(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()));
             yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(logical_and(s));
         }
-#line 932 "parser.tab.cc"
+#line 945 "parser.tab.cc"
     break;
 
   case 17: // expr: expr '^' expr
-#line 173 "parser.yy"
+#line 174 "parser.yy"
         {
             vec_boolean s;
             s.push_back(rcp_static_cast<const Boolean>(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > ()));
             s.push_back(rcp_static_cast<const Boolean>(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()));
             yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(logical_xor(s));
         }
-#line 943 "parser.tab.cc"
+#line 956 "parser.tab.cc"
     break;
 
   case 18: // expr: '(' expr ')'
-#line 181 "parser.yy"
+#line 182 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = yystack_[1].value.as < SymEngine::RCP<const SymEngine::Basic> > (); }
-#line 949 "parser.tab.cc"
+#line 962 "parser.tab.cc"
     break;
 
   case 19: // expr: '-' expr
-#line 184 "parser.yy"
+#line 185 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = neg(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 955 "parser.tab.cc"
+#line 968 "parser.tab.cc"
     break;
 
   case 20: // expr: '+' expr
-#line 187 "parser.yy"
+#line 188 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > (); }
-#line 961 "parser.tab.cc"
+#line 974 "parser.tab.cc"
     break;
 
   case 21: // expr: '~' expr
-#line 190 "parser.yy"
+#line 191 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(logical_not(rcp_static_cast<const Boolean>(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()))); }
-#line 967 "parser.tab.cc"
+#line 980 "parser.tab.cc"
     break;
 
   case 22: // expr: leaf
-#line 193 "parser.yy"
+#line 194 "parser.yy"
         { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = rcp_static_cast<const Basic>(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 973 "parser.tab.cc"
+#line 986 "parser.tab.cc"
     break;
 
   case 23: // leaf: IDENTIFIER
-#line 198 "parser.yy"
+#line 199 "parser.yy"
     {
         yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = p.parse_identifier(yystack_[0].value.as < std::string > ());
     }
-#line 981 "parser.tab.cc"
+#line 994 "parser.tab.cc"
     break;
 
   case 24: // leaf: IMPLICIT_MUL
-#line 203 "parser.yy"
+#line 204 "parser.yy"
     {
         auto tup = p.parse_implicit_mul(yystack_[0].value.as < std::string > ());
         yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = mul(std::get<0>(tup), std::get<1>(tup));
     }
-#line 990 "parser.tab.cc"
+#line 1003 "parser.tab.cc"
     break;
 
   case 25: // leaf: NUMERIC
-#line 209 "parser.yy"
+#line 210 "parser.yy"
     {
         yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = p.parse_numeric(yystack_[0].value.as < std::string > ());
     }
-#line 998 "parser.tab.cc"
+#line 1011 "parser.tab.cc"
     break;
 
-  case 26: // leaf: func
-#line 214 "parser.yy"
+  case 26: // leaf: deriv
+#line 215 "parser.yy"
     {
         yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ();
     }
-#line 1006 "parser.tab.cc"
+#line 1019 "parser.tab.cc"
     break;
 
-  case 27: // leaf: pwise
-#line 219 "parser.yy"
+  case 27: // leaf: func
+#line 220 "parser.yy"
     {
         yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ();
     }
-#line 1014 "parser.tab.cc"
+#line 1027 "parser.tab.cc"
     break;
 
-  case 28: // func: IDENTIFIER '(' expr_list ')'
-#line 226 "parser.yy"
+  case 28: // leaf: pwise
+#line 225 "parser.yy"
+    {
+        yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ();
+    }
+#line 1035 "parser.tab.cc"
+    break;
+
+  case 29: // deriv: DERIVATIVE '(' func ',' expr_list ')'
+#line 233 "parser.yy"
+    {
+        assert(yystack_[5].value.as < std::string > () == "Derivative");
+        SymEngine::multiset_basic mset(yystack_[1].value.as < SymEngine::vec_basic > () .begin(), yystack_[1].value.as < SymEngine::vec_basic > () .end());
+        yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = SymEngine::Derivative::create(yystack_[3].value.as < SymEngine::RCP<const SymEngine::Basic> > (), mset);
+    }
+#line 1045 "parser.tab.cc"
+    break;
+
+  case 30: // func: IDENTIFIER '(' expr_list ')'
+#line 242 "parser.yy"
     {
         yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = p.functionify(yystack_[3].value.as < std::string > (), yystack_[1].value.as < SymEngine::vec_basic > ());
     }
-#line 1022 "parser.tab.cc"
+#line 1053 "parser.tab.cc"
     break;
 
-  case 29: // epair: '(' expr ',' expr ')'
-#line 234 "parser.yy"
+  case 31: // epair: '(' expr ',' expr ')'
+#line 249 "parser.yy"
     {
         auto logical_expr = yystack_[1].value.as < SymEngine::RCP<const SymEngine::Basic> > ();
         if (!SymEngine::is_a_sub<Boolean>(*logical_expr)) {
@@ -1031,54 +1062,54 @@ namespace yy {
         }
         yylhs.value.as < std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > () = std::make_pair(yystack_[3].value.as < SymEngine::RCP<const SymEngine::Basic> > (), rcp_static_cast<const Boolean>(logical_expr));
     }
-#line 1035 "parser.tab.cc"
+#line 1066 "parser.tab.cc"
     break;
 
-  case 30: // piecewise_list: piecewise_list ',' epair
-#line 246 "parser.yy"
+  case 32: // piecewise_list: piecewise_list ',' epair
+#line 261 "parser.yy"
     {
        yylhs.value.as < SymEngine::PiecewiseVec > () = yystack_[2].value.as < SymEngine::PiecewiseVec > ();
        yylhs.value.as < SymEngine::PiecewiseVec > () .push_back(yystack_[0].value.as < std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > ());
     }
-#line 1044 "parser.tab.cc"
+#line 1075 "parser.tab.cc"
     break;
 
-  case 31: // piecewise_list: epair
-#line 252 "parser.yy"
+  case 33: // piecewise_list: epair
+#line 267 "parser.yy"
     {
        yylhs.value.as < SymEngine::PiecewiseVec > () = SymEngine::PiecewiseVec(1, yystack_[0].value.as < std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > ());
     }
-#line 1052 "parser.tab.cc"
+#line 1083 "parser.tab.cc"
     break;
 
-  case 32: // pwise: PIECEWISE '(' piecewise_list ')'
-#line 259 "parser.yy"
+  case 34: // pwise: PIECEWISE '(' piecewise_list ')'
+#line 274 "parser.yy"
     {
         assert(yystack_[3].value.as < std::string > () == "Piecewise");
         yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = piecewise(std::move(yystack_[1].value.as < SymEngine::PiecewiseVec > ()));
     }
-#line 1061 "parser.tab.cc"
+#line 1092 "parser.tab.cc"
     break;
 
-  case 33: // expr_list: expr_list ',' expr
-#line 268 "parser.yy"
+  case 35: // expr_list: expr_list ',' expr
+#line 283 "parser.yy"
     {
         yylhs.value.as < SymEngine::vec_basic > () = yystack_[2].value.as < SymEngine::vec_basic > (); // TODO : should make copy?
         yylhs.value.as < SymEngine::vec_basic > () .push_back(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ());
     }
-#line 1070 "parser.tab.cc"
+#line 1101 "parser.tab.cc"
     break;
 
-  case 34: // expr_list: expr
-#line 274 "parser.yy"
+  case 36: // expr_list: expr
+#line 289 "parser.yy"
     {
         yylhs.value.as < SymEngine::vec_basic > () = vec_basic(1, yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ());
     }
-#line 1078 "parser.tab.cc"
+#line 1109 "parser.tab.cc"
     break;
 
 
-#line 1082 "parser.tab.cc"
+#line 1113 "parser.tab.cc"
 
             default:
               break;
@@ -1267,117 +1298,122 @@ namespace yy {
 
 
 
-  const signed char parser::yypact_ninf_ = -13;
+  const signed char parser::yypact_ninf_ = -23;
 
   const signed char parser::yytable_ninf_ = -1;
 
   const short
   parser::yypact_[] =
   {
-      29,    28,    50,   -13,    54,    29,    29,    29,    29,    77,
-     110,   -13,   -13,   -13,    68,    29,    29,    71,    71,    72,
-     -13,   -13,    29,    29,    29,    29,    29,    29,    29,    29,
-      29,    29,    29,    29,    29,    29,    29,   -13,   -12,   110,
-     -11,    71,   -13,   125,   139,   152,    25,   163,   173,   -10,
-     181,    32,    53,    53,    71,    71,    71,    51,   -13,    68,
-     -13,    29,    29,   -13,   110,    91,   -13
+      39,   -22,   -21,    -1,   -23,    16,    39,    39,    39,    39,
+      23,   121,   -23,   -23,   -23,   -23,    63,    15,    39,    39,
+      24,    24,    83,   -23,   -23,    39,    39,    39,    39,    39,
+      39,    39,    39,    39,    39,    39,    39,    39,    39,    -1,
+      55,    39,   -23,    -6,   121,    58,    24,   -23,   136,   150,
+     163,    -2,    35,   173,   182,   190,    42,   -18,   -18,    24,
+      24,    24,    39,    62,   -23,    15,   -23,    39,    61,    39,
+     -23,   121,   -23,   102,   -23
   };
 
   const signed char
   parser::yydefact_[] =
   {
-       0,     0,    23,    25,    24,     0,     0,     0,     0,     0,
-       2,    22,    26,    27,     0,     0,     0,    19,    20,     0,
-      21,     1,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,    31,     0,    34,
-       0,     7,    18,    15,    17,    16,    14,    10,     9,    11,
-      12,    13,     4,     3,     5,     6,     8,     0,    32,     0,
-      28,     0,     0,    30,    33,     0,    29
+       0,     0,     0,    23,    25,    24,     0,     0,     0,     0,
+       0,     2,    22,    26,    27,    28,     0,     0,     0,     0,
+      19,    20,     0,    21,     1,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,    33,     0,    36,     0,     7,    18,    15,    17,
+      16,    14,    10,     9,    11,    12,    13,     4,     3,     5,
+       6,     8,     0,     0,    34,     0,    30,     0,     0,     0,
+      32,    35,    29,     0,    31
   };
 
   const signed char
   parser::yypgoto_[] =
   {
-     -13,   -13,    -5,   -13,   -13,    36,   -13,   -13,   -13
+     -23,   -23,     0,   -23,   -23,    47,    40,   -23,   -23,    26
   };
 
   const signed char
   parser::yydefgoto_[] =
   {
-       0,     9,    10,    11,    12,    37,    38,    13,    40
+       0,    10,    44,    12,    13,    14,    42,    43,    15,    45
   };
 
   const signed char
   parser::yytable_[] =
   {
-      17,    18,    19,    20,    29,    30,    31,    32,    33,    34,
-      39,    41,    35,    58,    60,    59,    61,    43,    44,    45,
-      46,    47,    48,    49,    50,    51,    52,    53,    54,    55,
-      56,    57,     1,     2,     3,     4,    26,    27,    28,    29,
-      30,    31,    32,    33,    34,     5,     6,    35,    31,    32,
-      33,    34,    14,     7,    35,     8,    64,    65,    22,    23,
-      24,    25,    26,    27,    28,    29,    30,    31,    32,    33,
-      34,    33,    34,    35,    15,    35,    16,    21,    62,    22,
-      23,    24,    25,    26,    27,    28,    29,    30,    31,    32,
-      33,    34,    36,    35,    35,    63,     0,    42,    22,    23,
-      24,    25,    26,    27,    28,    29,    30,    31,    32,    33,
-      34,     0,     0,    35,     0,     0,    66,    22,    23,    24,
+      11,    36,    37,    16,    17,    38,    20,    21,    22,    23,
+      29,    30,    31,    32,    33,    34,    35,    36,    37,    46,
+      64,    38,    65,    24,    18,    48,    49,    50,    51,    52,
+      53,    54,    55,    56,    57,    58,    59,    60,    61,    19,
+      41,    63,     1,     2,     3,     4,     5,    38,    30,    31,
+      32,    33,    34,    35,    36,    37,     6,     7,    38,    34,
+      35,    36,    37,    40,     8,    38,     9,    71,    39,    73,
       25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
-       0,     0,    35,    23,    24,    25,    26,    27,    28,    29,
-      30,    31,    32,    33,    34,     0,     0,    35,    24,    25,
-      26,    27,    28,    29,    30,    31,    32,    33,    34,     0,
-       0,    35,    25,    26,    27,    28,    29,    30,    31,    32,
-      33,    34,     0,     0,    35,    27,    28,    29,    30,    31,
-      32,    33,    34,     0,     0,    35,    28,    29,    30,    31,
-      32,    33,    34,     0,     0,    35,    30,    31,    32,    33,
-      34,     0,     0,    35
+      35,    36,    37,    62,    66,    38,    67,    72,    68,    67,
+      69,    25,    26,    27,    28,    29,    30,    31,    32,    33,
+      34,    35,    36,    37,     0,    70,    38,     0,     0,    47,
+      25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
+      35,    36,    37,     0,     0,    38,     0,     0,    74,    25,
+      26,    27,    28,    29,    30,    31,    32,    33,    34,    35,
+      36,    37,     0,     0,    38,    26,    27,    28,    29,    30,
+      31,    32,    33,    34,    35,    36,    37,     0,     0,    38,
+      27,    28,    29,    30,    31,    32,    33,    34,    35,    36,
+      37,     0,     0,    38,    28,    29,    30,    31,    32,    33,
+      34,    35,    36,    37,     0,     0,    38,    31,    32,    33,
+      34,    35,    36,    37,     0,     0,    38,    32,    33,    34,
+      35,    36,    37,     0,     0,    38,    33,    34,    35,    36,
+      37,     0,     0,    38
   };
 
   const signed char
   parser::yycheck_[] =
   {
-       5,     6,     7,     8,    14,    15,    16,    17,    18,    19,
-      15,    16,    22,    25,    25,    27,    27,    22,    23,    24,
-      25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
-      35,    36,     3,     4,     5,     6,    11,    12,    13,    14,
-      15,    16,    17,    18,    19,    16,    17,    22,    16,    17,
-      18,    19,    24,    24,    22,    26,    61,    62,     7,     8,
-       9,    10,    11,    12,    13,    14,    15,    16,    17,    18,
-      19,    18,    19,    22,    24,    22,    22,     0,    27,     7,
+       0,    19,    20,    25,    25,    23,     6,     7,     8,     9,
+      12,    13,    14,    15,    16,    17,    18,    19,    20,    19,
+      26,    23,    28,     0,    25,    25,    26,    27,    28,    29,
+      30,    31,    32,    33,    34,    35,    36,    37,    38,    23,
+      25,    41,     3,     4,     5,     6,     7,    23,    13,    14,
+      15,    16,    17,    18,    19,    20,    17,    18,    23,    17,
+      18,    19,    20,    16,    25,    23,    27,    67,     5,    69,
        8,     9,    10,    11,    12,    13,    14,    15,    16,    17,
-      18,    19,    24,    22,    22,    59,    -1,    25,     7,     8,
+      18,    19,    20,    28,    26,    23,    28,    26,    62,    28,
+      28,     8,     9,    10,    11,    12,    13,    14,    15,    16,
+      17,    18,    19,    20,    -1,    65,    23,    -1,    -1,    26,
+       8,     9,    10,    11,    12,    13,    14,    15,    16,    17,
+      18,    19,    20,    -1,    -1,    23,    -1,    -1,    26,     8,
        9,    10,    11,    12,    13,    14,    15,    16,    17,    18,
-      19,    -1,    -1,    22,    -1,    -1,    25,     7,     8,     9,
+      19,    20,    -1,    -1,    23,     9,    10,    11,    12,    13,
+      14,    15,    16,    17,    18,    19,    20,    -1,    -1,    23,
       10,    11,    12,    13,    14,    15,    16,    17,    18,    19,
-      -1,    -1,    22,     8,     9,    10,    11,    12,    13,    14,
-      15,    16,    17,    18,    19,    -1,    -1,    22,     9,    10,
-      11,    12,    13,    14,    15,    16,    17,    18,    19,    -1,
-      -1,    22,    10,    11,    12,    13,    14,    15,    16,    17,
-      18,    19,    -1,    -1,    22,    12,    13,    14,    15,    16,
-      17,    18,    19,    -1,    -1,    22,    13,    14,    15,    16,
-      17,    18,    19,    -1,    -1,    22,    15,    16,    17,    18,
-      19,    -1,    -1,    22
+      20,    -1,    -1,    23,    11,    12,    13,    14,    15,    16,
+      17,    18,    19,    20,    -1,    -1,    23,    14,    15,    16,
+      17,    18,    19,    20,    -1,    -1,    23,    15,    16,    17,
+      18,    19,    20,    -1,    -1,    23,    16,    17,    18,    19,
+      20,    -1,    -1,    23
   };
 
   const signed char
   parser::yystos_[] =
   {
-       0,     3,     4,     5,     6,    16,    17,    24,    26,    29,
-      30,    31,    32,    35,    24,    24,    22,    30,    30,    30,
-      30,     0,     7,     8,     9,    10,    11,    12,    13,    14,
-      15,    16,    17,    18,    19,    22,    24,    33,    34,    30,
-      36,    30,    25,    30,    30,    30,    30,    30,    30,    30,
-      30,    30,    30,    30,    30,    30,    30,    30,    25,    27,
-      25,    27,    27,    33,    30,    30,    25
+       0,     3,     4,     5,     6,     7,    17,    18,    25,    27,
+      30,    31,    32,    33,    34,    37,    25,    25,    25,    23,
+      31,    31,    31,    31,     0,     8,     9,    10,    11,    12,
+      13,    14,    15,    16,    17,    18,    19,    20,    23,     5,
+      34,    25,    35,    36,    31,    38,    31,    26,    31,    31,
+      31,    31,    31,    31,    31,    31,    31,    31,    31,    31,
+      31,    31,    28,    31,    26,    28,    26,    28,    38,    28,
+      35,    31,    26,    31,    26
   };
 
   const signed char
   parser::yyr1_[] =
   {
-       0,    28,    29,    30,    30,    30,    30,    30,    30,    30,
-      30,    30,    30,    30,    30,    30,    30,    30,    30,    30,
-      30,    30,    30,    31,    31,    31,    31,    31,    32,    33,
-      34,    34,    35,    36,    36
+       0,    29,    30,    31,    31,    31,    31,    31,    31,    31,
+      31,    31,    31,    31,    31,    31,    31,    31,    31,    31,
+      31,    31,    31,    32,    32,    32,    32,    32,    32,    33,
+      34,    35,    36,    36,    37,    38,    38
   };
 
   const signed char
@@ -1385,8 +1421,8 @@ namespace yy {
   {
        0,     2,     1,     3,     3,     3,     3,     3,     3,     3,
        3,     3,     3,     3,     3,     3,     3,     3,     3,     2,
-       2,     2,     1,     1,     1,     1,     1,     1,     4,     5,
-       3,     1,     4,     3,     1
+       2,     2,     1,     1,     1,     1,     1,     1,     1,     6,
+       4,     5,     3,     1,     4,     3,     1
   };
 
 
@@ -1396,11 +1432,12 @@ namespace yy {
   const char*
   const parser::yytname_[] =
   {
-  "END_OF_FILE", "error", "\"invalid token\"", "PIECEWISE", "IDENTIFIER",
-  "NUMERIC", "IMPLICIT_MUL", "'|'", "'^'", "'&'", "EQ", "'>'", "'<'", "NE",
-  "LE", "GE", "'-'", "'+'", "'*'", "'/'", "UMINUS", "UPLUS", "POW", "NOT",
-  "'('", "')'", "'~'", "','", "$accept", "st_expr", "expr", "leaf", "func",
-  "epair", "piecewise_list", "pwise", "expr_list", YY_NULLPTR
+  "END_OF_FILE", "error", "\"invalid token\"", "DERIVATIVE", "PIECEWISE",
+  "IDENTIFIER", "NUMERIC", "IMPLICIT_MUL", "'|'", "'^'", "'&'", "EQ",
+  "'>'", "'<'", "NE", "LE", "GE", "'-'", "'+'", "'*'", "'/'", "UMINUS",
+  "UPLUS", "POW", "NOT", "'('", "')'", "'~'", "','", "$accept", "st_expr",
+  "expr", "leaf", "deriv", "func", "epair", "piecewise_list", "pwise",
+  "expr_list", YY_NULLPTR
   };
 #endif
 
@@ -1409,10 +1446,10 @@ namespace yy {
   const short
   parser::yyrline_[] =
   {
-       0,   103,   103,   111,   114,   117,   120,   125,   135,   138,
-     141,   144,   147,   150,   153,   156,   164,   172,   180,   183,
-     186,   189,   192,   197,   202,   208,   213,   218,   225,   233,
-     245,   251,   258,   267,   273
+       0,   104,   104,   112,   115,   118,   121,   126,   136,   139,
+     142,   145,   148,   151,   154,   157,   165,   173,   181,   184,
+     187,   190,   193,   198,   203,   209,   214,   219,   224,   232,
+     241,   248,   260,   266,   273,   282,   288
   };
 
   void
@@ -1454,16 +1491,16 @@ namespace yy {
        0,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     9,     2,
-      24,    25,    18,    17,    27,    16,     2,    19,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,    10,     2,
+      25,    26,    19,    18,    28,    17,     2,    20,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-      12,     2,    11,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     8,     2,     2,     2,     2,     2,
+      13,     2,    12,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
-       2,     2,     2,     2,     7,     2,    26,     2,     2,     2,
+       2,     2,     2,     2,     9,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
+       2,     2,     2,     2,     8,     2,    27,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
@@ -1477,10 +1514,11 @@ namespace yy {
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
-       5,     6,    10,    13,    14,    15,    20,    21,    22,    23
+       5,     6,     7,    11,    14,    15,    16,    21,    22,    23,
+      24
     };
     // Last valid token kind.
-    const int code_max = 269;
+    const int code_max = 270;
 
     if (t <= 0)
       return symbol_kind::S_YYEOF;
@@ -1491,5 +1529,5 @@ namespace yy {
   }
 
 } // yy
-#line 1495 "parser.tab.cc"
+#line 1533 "parser.tab.cc"
 

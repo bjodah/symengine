@@ -652,7 +652,7 @@ TEST_CASE("Parsing: functions", "[parser]")
             d5gdx3dy2 = diff(d5gdx3dy2, rcp_static_cast<const Symbol>(x), false);
             d5gdx3dy2 = diff(d5gdx3dy2, rcp_static_cast<const Symbol>(y), false);
         }
-        REQUIRE(eq(*res, *d5gdx3dy2));
+        REQUIRE(eq(*res, *sub(gxy, d5gdx3dy2)));
     }
 }
 

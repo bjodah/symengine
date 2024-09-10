@@ -388,6 +388,7 @@ namespace yy {
       // st_expr
       // expr
       // leaf
+      // deriv
       // func
       // pwise
       char dummy2[sizeof (SymEngine::RCP<const SymEngine::Basic>)];
@@ -398,6 +399,7 @@ namespace yy {
       // epair
       char dummy4[sizeof (std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>>)];
 
+      // DERIVATIVE
       // PIECEWISE
       // IDENTIFIER
       // NUMERIC
@@ -446,18 +448,19 @@ namespace yy {
     END_OF_FILE = 0,               // END_OF_FILE
     YYerror = 256,                 // error
     YYUNDEF = 257,                 // "invalid token"
-    PIECEWISE = 258,               // PIECEWISE
-    IDENTIFIER = 259,              // IDENTIFIER
-    NUMERIC = 260,                 // NUMERIC
-    IMPLICIT_MUL = 261,            // IMPLICIT_MUL
-    EQ = 262,                      // EQ
-    NE = 263,                      // NE
-    LE = 264,                      // LE
-    GE = 265,                      // GE
-    UMINUS = 266,                  // UMINUS
-    UPLUS = 267,                   // UPLUS
-    POW = 268,                     // POW
-    NOT = 269                      // NOT
+    DERIVATIVE = 258,              // DERIVATIVE
+    PIECEWISE = 259,               // PIECEWISE
+    IDENTIFIER = 260,              // IDENTIFIER
+    NUMERIC = 261,                 // NUMERIC
+    IMPLICIT_MUL = 262,            // IMPLICIT_MUL
+    EQ = 263,                      // EQ
+    NE = 264,                      // NE
+    LE = 265,                      // LE
+    GE = 266,                      // GE
+    UMINUS = 267,                  // UMINUS
+    UPLUS = 268,                   // UPLUS
+    POW = 269,                     // POW
+    NOT = 270                      // NOT
       };
       /// Backward compatibility alias (Bison 3.6).
       typedef token_kind_type yytokentype;
@@ -474,45 +477,47 @@ namespace yy {
     {
       enum symbol_kind_type
       {
-        YYNTOKENS = 28, ///< Number of tokens.
+        YYNTOKENS = 29, ///< Number of tokens.
         S_YYEMPTY = -2,
         S_YYEOF = 0,                             // END_OF_FILE
         S_YYerror = 1,                           // error
         S_YYUNDEF = 2,                           // "invalid token"
-        S_PIECEWISE = 3,                         // PIECEWISE
-        S_IDENTIFIER = 4,                        // IDENTIFIER
-        S_NUMERIC = 5,                           // NUMERIC
-        S_IMPLICIT_MUL = 6,                      // IMPLICIT_MUL
-        S_7_ = 7,                                // '|'
-        S_8_ = 8,                                // '^'
-        S_9_ = 9,                                // '&'
-        S_EQ = 10,                               // EQ
-        S_11_ = 11,                              // '>'
-        S_12_ = 12,                              // '<'
-        S_NE = 13,                               // NE
-        S_LE = 14,                               // LE
-        S_GE = 15,                               // GE
-        S_16_ = 16,                              // '-'
-        S_17_ = 17,                              // '+'
-        S_18_ = 18,                              // '*'
-        S_19_ = 19,                              // '/'
-        S_UMINUS = 20,                           // UMINUS
-        S_UPLUS = 21,                            // UPLUS
-        S_POW = 22,                              // POW
-        S_NOT = 23,                              // NOT
-        S_24_ = 24,                              // '('
-        S_25_ = 25,                              // ')'
-        S_26_ = 26,                              // '~'
-        S_27_ = 27,                              // ','
-        S_YYACCEPT = 28,                         // $accept
-        S_st_expr = 29,                          // st_expr
-        S_expr = 30,                             // expr
-        S_leaf = 31,                             // leaf
-        S_func = 32,                             // func
-        S_epair = 33,                            // epair
-        S_piecewise_list = 34,                   // piecewise_list
-        S_pwise = 35,                            // pwise
-        S_expr_list = 36                         // expr_list
+        S_DERIVATIVE = 3,                        // DERIVATIVE
+        S_PIECEWISE = 4,                         // PIECEWISE
+        S_IDENTIFIER = 5,                        // IDENTIFIER
+        S_NUMERIC = 6,                           // NUMERIC
+        S_IMPLICIT_MUL = 7,                      // IMPLICIT_MUL
+        S_8_ = 8,                                // '|'
+        S_9_ = 9,                                // '^'
+        S_10_ = 10,                              // '&'
+        S_EQ = 11,                               // EQ
+        S_12_ = 12,                              // '>'
+        S_13_ = 13,                              // '<'
+        S_NE = 14,                               // NE
+        S_LE = 15,                               // LE
+        S_GE = 16,                               // GE
+        S_17_ = 17,                              // '-'
+        S_18_ = 18,                              // '+'
+        S_19_ = 19,                              // '*'
+        S_20_ = 20,                              // '/'
+        S_UMINUS = 21,                           // UMINUS
+        S_UPLUS = 22,                            // UPLUS
+        S_POW = 23,                              // POW
+        S_NOT = 24,                              // NOT
+        S_25_ = 25,                              // '('
+        S_26_ = 26,                              // ')'
+        S_27_ = 27,                              // '~'
+        S_28_ = 28,                              // ','
+        S_YYACCEPT = 29,                         // $accept
+        S_st_expr = 30,                          // st_expr
+        S_expr = 31,                             // expr
+        S_leaf = 32,                             // leaf
+        S_deriv = 33,                            // deriv
+        S_func = 34,                             // func
+        S_epair = 35,                            // epair
+        S_piecewise_list = 36,                   // piecewise_list
+        S_pwise = 37,                            // pwise
+        S_expr_list = 38                         // expr_list
       };
     };
 
@@ -554,6 +559,7 @@ namespace yy {
       case symbol_kind::S_st_expr: // st_expr
       case symbol_kind::S_expr: // expr
       case symbol_kind::S_leaf: // leaf
+      case symbol_kind::S_deriv: // deriv
       case symbol_kind::S_func: // func
       case symbol_kind::S_pwise: // pwise
         value.move< SymEngine::RCP<const SymEngine::Basic> > (std::move (that.value));
@@ -567,6 +573,7 @@ namespace yy {
         value.move< std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > (std::move (that.value));
         break;
 
+      case symbol_kind::S_DERIVATIVE: // DERIVATIVE
       case symbol_kind::S_PIECEWISE: // PIECEWISE
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_NUMERIC: // NUMERIC
@@ -686,6 +693,7 @@ switch (yykind)
       case symbol_kind::S_st_expr: // st_expr
       case symbol_kind::S_expr: // expr
       case symbol_kind::S_leaf: // leaf
+      case symbol_kind::S_deriv: // deriv
       case symbol_kind::S_func: // func
       case symbol_kind::S_pwise: // pwise
         value.template destroy< SymEngine::RCP<const SymEngine::Basic> > ();
@@ -699,6 +707,7 @@ switch (yykind)
         value.template destroy< std::pair<SymEngine::RCP<const SymEngine::Basic>, SymEngine::RCP<const SymEngine::Boolean>> > ();
         break;
 
+      case symbol_kind::S_DERIVATIVE: // DERIVATIVE
       case symbol_kind::S_PIECEWISE: // PIECEWISE
       case symbol_kind::S_IDENTIFIER: // IDENTIFIER
       case symbol_kind::S_NUMERIC: // NUMERIC
@@ -903,6 +912,21 @@ switch (yykind)
       make_YYUNDEF ()
       {
         return symbol_type (token::YYUNDEF);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_DERIVATIVE (std::string v)
+      {
+        return symbol_type (token::DERIVATIVE, std::move (v));
+      }
+#else
+      static
+      symbol_type
+      make_DERIVATIVE (const std::string& v)
+      {
+        return symbol_type (token::DERIVATIVE, v);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -1389,9 +1413,9 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 203,     ///< Last index in yytable_.
-      yynnts_ = 9,  ///< Number of nonterminal symbols.
-      yyfinal_ = 21 ///< Termination state number.
+      yylast_ = 213,     ///< Last index in yytable_.
+      yynnts_ = 10,  ///< Number of nonterminal symbols.
+      yyfinal_ = 24 ///< Termination state number.
     };
 
 
@@ -1402,7 +1426,7 @@ switch (yykind)
 
 
 } // yy
-#line 1406 "parser.tab.hh"
+#line 1430 "parser.tab.hh"
 
 
 
