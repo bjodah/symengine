@@ -2318,7 +2318,11 @@ TEST_CASE("Test Jacobian", "[matrices]")
                        [](const RCP<const Basic> &a,
                           const RCP<const Basic> &b) { return eq(*a, *b); }));
     REQUIRE(Js == ref1);
-
+    { // regression test to check that is_canoncial check in CSRMatrix behaves well.
+        auto W = DenseMatrix(4, 1, {symbol("w0"), symbol("w1"), symbol("w2"), symbol("w3")});
+        Js = CSRMatrix::jacobian(A, W);  // this will return a "4x4 sparse Zero matrix"
+        REQUIRE(is_true(Js.is_zero()));
+    }
     X = DenseMatrix(4, 1, {f, y, z, t});
     CHECK_THROWS_AS(jacobian(A, X, J), SymEngineException);
     CHECK_THROWS_AS(CSRMatrix::jacobian(A, X), SymEngineException);

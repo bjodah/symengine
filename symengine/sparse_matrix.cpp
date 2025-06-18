@@ -140,7 +140,7 @@ void CSRMatrix::set(unsigned i, unsigned j, const RCP<const Basic> &e)
         }
     }
 
-    if (!is_true(is_zero(*e))) {
+    if (!is_true(::SymEngine::is_zero(*e))) {
         if (k < row_end and j_[k] == j) {
             x_[k] = e;
         } else { // j_[k] > j or k is the last non-zero element
@@ -162,6 +162,19 @@ void CSRMatrix::set(unsigned i, unsigned j, const RCP<const Basic> &e)
 tribool CSRMatrix::is_real(const Assumptions *assumptions) const
 {
     RealVisitor visitor(assumptions);
+    tribool cur = tribool::tritrue;
+    for (auto &e : x_) {
+        cur = and_tribool(cur, visitor.apply(*e));
+        if (is_false(cur)) {
+            return cur;
+        }
+    }
+    return cur;
+}
+
+tribool CSRMatrix::is_zero(const Assumptions *assumptions) const
+{
+    ZeroVisitor visitor(assumptions);
     tribool cur = tribool::tritrue;
     for (auto &e : x_) {
         cur = and_tribool(cur, visitor.apply(*e));
@@ -502,7 +515,7 @@ CSRMatrix CSRMatrix::jacobian(const vec_basic &exprs, const vec_sym &x,
         p.push_back(p.back());
         for (unsigned ci = 0; ci < ncols; ++ci) {
             auto elem = exprs[ri]->diff(x[ci], diff_cache);
-            if (!is_true(is_zero(*elem))) {
+            if (!is_true(::SymEngine::is_zero(*elem))) {
                 p.back()++;
                 j.push_back(ci);
                 elems.emplace_back(std::move(elem));

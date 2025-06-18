@@ -120,7 +120,7 @@ public:
     DenseMatrix &operator=(const DenseMatrix &other) = default;
     // type_code
     const static MatrixTypeID type_code_id = SYMENGINE_DENSE_MATRIX;
-    virtual MatrixTypeID get_type_code() const
+    virtual MatrixTypeID get_type_code() const override
     {
         return SYMENGINE_DENSE_MATRIX;
     }
@@ -370,7 +370,7 @@ public:
     CSRMatrix &operator=(CSRMatrix &&other);
     CSRMatrix(const CSRMatrix &) = default;
     const static MatrixTypeID type_code_id = SYMENGINE_CSR_MATRIX;
-    virtual MatrixTypeID get_type_code() const
+    virtual MatrixTypeID get_type_code() const override
     {
         return SYMENGINE_CSR_MATRIX;
     }
@@ -395,6 +395,7 @@ public:
     }
 
     tribool is_real(const Assumptions *assumptions = nullptr) const override;
+    virtual tribool is_zero(const Assumptions *assumptions = nullptr) const;
     unsigned rank() const override;
     RCP<const Basic> det() const override;
     void inv(MatrixBase &result) const override;
