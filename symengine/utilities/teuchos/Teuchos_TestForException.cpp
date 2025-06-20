@@ -42,7 +42,7 @@
 #include "Teuchos_TestForException.hpp"
 
 #include <iostream>
-
+#include <exception> // std::terminate
 
 //
 // ToDo: Make these functions thread-safe!

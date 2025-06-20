@@ -10,6 +10,7 @@ if (HAVE_SYMENGINE_ARB)
     add_executable(test_eval_arb test_eval_arb.cpp)
     target_link_libraries(test_eval_arb symengine catch)
     add_test(test_eval_arb ${PROJECT_BINARY_DIR}/test_eval_arb)
+    set_tests_properties(test_eval_arb PROPERTIES ENVIRONMENT "ASAN_OPTIONS=detect_leaks=0")  # see https://github.com/flintlib/flint/issues/2209#issuecomment-2988009146
 endif()
 
 if (HAVE_SYMENGINE_MPC)

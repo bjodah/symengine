@@ -28,10 +28,12 @@ if (WITH_FLINT)
     add_executable(test_uintpoly_flint test_uintpoly_flint.cpp)
     target_link_libraries(test_uintpoly_flint symengine catch)
     add_test(test_uintpoly_flint ${PROJECT_BINARY_DIR}/test_uintpoly_flint)
+    set_tests_properties(test_uintpoly_flint PROPERTIES ENVIRONMENT "ASAN_OPTIONS=detect_leaks=0")  # https://github.com/flintlib/flint/issues/2209#issuecomment-2988009146
 
     add_executable(test_uratpoly_flint test_uratpoly_flint.cpp)
     target_link_libraries(test_uratpoly_flint symengine catch)
     add_test(test_uratpoly_flint ${PROJECT_BINARY_DIR}/test_uratpoly_flint)
+    set_tests_properties(test_uratpoly_flint PROPERTIES ENVIRONMENT "ASAN_OPTIONS=detect_leaks=0")  # https://github.com/flintlib/flint/issues/2209#issuecomment-2988009146
 
     add_executable(test_cancel test_cancel.cpp)
     target_link_libraries(test_cancel symengine catch)
