@@ -1,6 +1,8 @@
 #include <symengine/printers.h>
 #include <symengine/subs.h>
+#if HAVE_SYMENGINE_RTTI
 #include <symengine/serialize-cereal.h>
+#endif
 #include <array>
 
 namespace SymEngine
@@ -50,20 +52,25 @@ std::string Basic::__str__() const
 
 std::string Basic::dumps() const
 {
+#if HAVE_SYMENGINE_RTTI
     std::ostringstream oss;
     unsigned short major = SYMENGINE_MAJOR_VERSION;
     unsigned short minor = SYMENGINE_MINOR_VERSION;
-    cereal::PortableBinaryOutputArchive{oss}(major, minor,
-                                             this->rcp_from_this());
+    RCPBasicAwareOutputArchive<cereal::PortableBinaryOutputArchive>{oss}(
+        major, minor, this->rcp_from_this());
     return oss.str();
+#else
+    throw NotImplementedError("Serialization not implemented in no-rtti mode");
+#endif
 }
 
 RCP<const Basic> Basic::loads(const std::string &serialized)
 {
+#if HAVE_SYMENGINE_RTTI
     unsigned short major, minor;
     RCP<const Basic> obj;
     std::istringstream iss(serialized);
-    cereal::PortableBinaryInputArchive iarchive{iss};
+    RCPBasicAwareInputArchive<cereal::PortableBinaryInputArchive> iarchive{iss};
     iarchive(major, minor);
     if (major != SYMENGINE_MAJOR_VERSION or minor != SYMENGINE_MINOR_VERSION) {
         throw SerializationError(StreamFmt()
@@ -75,6 +82,9 @@ RCP<const Basic> Basic::loads(const std::string &serialized)
     }
     iarchive(obj);
     return obj;
+#else
+    throw NotImplementedError("Serialization not implemented in no-rtti mode");
+#endif
 }
 
 RCP<const Basic> Basic::subs(const map_basic_basic &subs_dict) const

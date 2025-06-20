@@ -1056,7 +1056,7 @@ namespace yy {
 #line 249 "parser.yy"
     {
         auto logical_expr = yystack_[1].value.as < SymEngine::RCP<const SymEngine::Basic> > ();
-        if (!SymEngine::is_a_sub<Boolean>(*logical_expr)) {
+        if (!SymEngine::is_a_Boolean(*logical_expr)) {
             throw SymEngine::ParseError(SymEngine::StreamFmt() << "Not of Boolean type in Piecewise arguments: "
                                         << logical_expr->__str__());
         }

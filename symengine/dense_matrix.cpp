@@ -8,6 +8,9 @@
 #include <symengine/polys/uexprpoly.h>
 #include <symengine/solve.h>
 #include <symengine/test_visitors.h>
+#if HAVE_SYMENGINE_RTTI
+#include <symengine/serialize-cereal.h>
+#endif
 
 namespace SymEngine
 {
@@ -2056,6 +2059,44 @@ void zeros(DenseMatrix &A)
     for (unsigned i = 0; i < A.row_ * A.col_; i++) {
         A.m_[i] = zero;
     }
+}
+
+std::string DenseMatrix::dumps() const
+{
+#if HAVE_SYMENGINE_RTTI
+    std::ostringstream oss;
+    unsigned short major = SYMENGINE_MAJOR_VERSION;
+    unsigned short minor = SYMENGINE_MINOR_VERSION;
+    RCPBasicAwareOutputArchive<cereal::PortableBinaryOutputArchive>{oss}(
+        major, minor, row_, col_, m_);
+    return oss.str();
+#else
+    throw NotImplementedError("Serialization not implemented in no-rtti mode");
+#endif
+}
+
+DenseMatrix DenseMatrix::loads(const std::string &serialized)
+{
+#if HAVE_SYMENGINE_RTTI
+    unsigned short major, minor;
+    unsigned row, col;
+    vec_basic obj;
+    std::istringstream iss(serialized);
+    RCPBasicAwareInputArchive<cereal::PortableBinaryInputArchive> iarchive{iss};
+    iarchive(major, minor);
+    if (major != SYMENGINE_MAJOR_VERSION or minor != SYMENGINE_MINOR_VERSION) {
+        throw SerializationError(StreamFmt()
+                                 << "SymEngine-" << SYMENGINE_MAJOR_VERSION
+                                 << "." << SYMENGINE_MINOR_VERSION
+                                 << " was asked to deserialize an object "
+                                 << "created using SymEngine-" << major << "."
+                                 << minor << ".");
+    }
+    iarchive(row, col, obj);
+    return DenseMatrix(row, col, std::move(obj));
+#else
+    throw NotImplementedError("Serialization not implemented in no-rtti mode");
+#endif
 }
 
 } // namespace SymEngine
