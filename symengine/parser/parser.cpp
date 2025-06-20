@@ -10,20 +10,42 @@ namespace SymEngine
 {
 
 RCP<const Basic>
-parse(const std::string &s, bool convert_xor,
-      const std::map<const std::string, const RCP<const Basic>> &constants)
+parse(const std::string &s, std::shared_ptr<const ParserSettings> settings)
 {
-    // This is expensive:
-    Parser p(constants);
     // If you need to parse multiple strings, initialize Parser first, then
     // call Parser::parse() repeatedly.
-    return p.parse(s, convert_xor);
+    if (settings) {
+        Parser p(settings);
+        return p.parse(s);
+    } else {
+        Parser p{};
+        return p.parse(s);
+    }
+
 }
 
-RCP<const Basic> Parser::parse(const std::string &input, bool convert_xor)
+RCP<const Basic>
+parse(const std::string &s, bool convert_xor)
+{
+    auto ps = std::make_shared<ParserSettings>();
+    ps->convert_xor = convert_xor;
+    ps->constants = get_default_parser_constants();
+    Parser p(ps);
+    return p.parse(s);
+}
+RCP<const Basic>
+parse(const std::string &s, bool convert_xor, const std::map<const std::string, const RCP<const Basic>> & constants)
+{
+    std::shared_ptr<ParserSettings> ps{};
+    ps->convert_xor = convert_xor;
+    ps->constants = std::make_shared<std::map<const std::string, const RCP<const Basic>>>(constants);
+    Parser p(ps);
+    return p.parse(s);
+}
+RCP<const Basic> Parser::parse(const std::string &input)
 {
     inp = input;
-    if (convert_xor) {
+    if (settings->convert_xor) {
         std::replace(inp.begin(), inp.end(), '^', '@');
     }
     m_tokenizer->set_string(inp);
@@ -254,31 +276,13 @@ RCP<const Basic> Parser::functionify(const std::string &name, vec_basic &params)
 
 RCP<const Basic> Parser::parse_identifier(const std::string &expr)
 {
-    const static std::map<const std::string, const RCP<const Basic>>
-        parser_constants = {{"e", E},
-                            {"E", E},
-                            {"EulerGamma", EulerGamma},
-                            {"Catalan", Catalan},
-                            {"GoldenRatio", GoldenRatio},
-                            {"pi", pi},
-                            {"I", I},
-                            {"oo", Inf},
-                            {"inf", Inf},
-                            {"zoo", ComplexInf},
-                            {"nan", Nan},
-                            {"True", boolTrue},
-                            {"False", boolFalse}};
-
-    auto l = local_parser_constants.find(expr);
-    if (l != local_parser_constants.end()) {
-        return l->second;
+    if (settings->constants) {
+        const auto c = settings->constants->find(expr);
+        if (c != settings->constants->end()) {
+            return c->second;
+        }
     }
-    auto c = parser_constants.find(expr);
-    if (c != parser_constants.end()) {
-        return c->second;
-    } else {
-        return symbol(expr);
-    }
+    return symbol(expr);
 }
 
 RCP<const Basic> Parser::parse_numeric(const std::string &expr)
@@ -353,9 +357,46 @@ Parser::parse_implicit_mul(const std::string &expr)
     return std::make_tuple(num, sym);
 }
 
-Parser::Parser(
-    const std::map<const std::string, const RCP<const Basic>> &parser_constants)
-    : local_parser_constants(parser_constants), m_tokenizer{new Tokenizer()}
+std::shared_ptr<std::map<const std::string, const RCP<const Basic>>>
+get_default_parser_constants() {
+    const static std::map<const std::string, const RCP<const Basic>>
+        default_parser_constants = {{"e", E},
+                            {"E", E},
+                            {"EulerGamma", EulerGamma},
+                            {"Catalan", Catalan},
+                            {"GoldenRatio", GoldenRatio},
+                            {"pi", pi},
+                            {"I", I},
+                            {"oo", Inf},
+                            {"inf", Inf},
+                            {"zoo", ComplexInf},
+                            {"nan", Nan},
+                            {"True", boolTrue},
+                            {"False", boolFalse}};
+    return std::make_shared<std::map<const std::string, const RCP<const Basic>>>(default_parser_constants);
+}
+
+
+Parser::Parser(std::shared_ptr<const ParserSettings> settings)
+    : settings(settings), m_tokenizer{new Tokenizer()}
+{
+}
+
+Parser::Parser() : Parser([](){
+    auto ps = std::make_shared<ParserSettings>();
+    ps->convert_xor = true;
+    ps->constants = get_default_parser_constants();
+    return ps;
+}())
+{
+}
+
+Parser::Parser(const std::map<const std::string, const RCP<const Basic>> & constants) : Parser([&](){
+    auto ps = std::make_shared<ParserSettings>();
+    ps->convert_xor = true;
+    ps->constants = std::make_shared<std::map<const std::string, const RCP<const Basic>>>(constants);
+    return ps;
+}())
 {
 }
 

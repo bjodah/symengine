@@ -342,8 +342,8 @@ RCP<const Basic> SbmlParser::parse_identifier(const std::string &expr)
                             {"true", boolTrue},
                             {"false", boolFalse}};
 
-    auto it_l = local_parser_constants.find(expr);
-    if (it_l != local_parser_constants.end()) {
+    auto it_l = settings->constants->find(expr);
+    if (it_l != settings->constants->end()) {
         return it_l->second;
     }
     std::string lexpr = lowercase(expr);
@@ -357,7 +357,12 @@ RCP<const Basic> SbmlParser::parse_identifier(const std::string &expr)
 
 SbmlParser::SbmlParser(
     const std::map<const std::string, const RCP<const Basic>> &parser_constants)
-    : Parser(parser_constants), m_tokenizer{new SbmlTokenizer()}
+    : Parser([&](){
+        auto ps = std::make_shared<ParserSettings>();
+        ps->convert_xor = true;
+        ps->constants = std::make_shared<std::map<const std::string, const RCP<const Basic>>>(parser_constants);
+        return ps;
+    }()), m_tokenizer{new SbmlTokenizer()}
 {
 }
 
