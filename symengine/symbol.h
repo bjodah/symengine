@@ -52,8 +52,7 @@ class Dummy : public Symbol
 private:
     //! Dummy count
 #ifdef WITH_SYMENGINE_THREAD_SAFE
-    static size_t count_;
-    // static std::atomic<size_t> count_;
+    static std::atomic<size_t> count_;
 #else
     static size_t count_;
 #endif
@@ -82,10 +81,12 @@ public:
     {
         return dummy_index;
     }
-    static constexpr const char *default_Dummy_prefix_ = "_Dummy_";
+    static constexpr const char default_Dummy_prefix_[] {"_Dummy_"};
     static constexpr size_t default_Dummy_prefix_len_
         = sizeof(default_Dummy_prefix_) - 1;
     static_assert(default_Dummy_prefix_len_ == 7);
+
+    friend RCP<const Dummy> dummy();
 };
 
 //! inline version to return `Symbol`
@@ -98,9 +99,8 @@ inline RCP<const Symbol> symbol(const std::string &name)
 inline RCP<const Dummy> dummy()
 {
 #ifdef WITH_SYMENGINE_THREAD_SAFE
-    return make_rcp<const Dummy>();
-    // return make_rcp<const Dummy>(Dummy::default_Dummy_prefix_,
-    // Dummy::count_.fetch_add(1, std::memory_order_relaxed));
+    return make_rcp<const Dummy>(Dummy::default_Dummy_prefix_,
+    Dummy::count_.fetch_add(1, std::memory_order_relaxed));
 #else
     return make_rcp<const Dummy>();
 #endif

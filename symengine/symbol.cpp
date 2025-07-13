@@ -36,18 +36,18 @@ RCP<const Symbol> Symbol::as_dummy() const
 }
 
 #ifdef WITH_SYMENGINE_THREAD_SAFE
-size_t Dummy::count_ = 0;
-// std::atomic<size_t> Dummy::count_ = 0;
+    std::atomic<size_t> Dummy::count_ {0};
 #else
 size_t Dummy::count_ = 0;
 #endif
 
+constexpr char Dummy::default_Dummy_prefix_[]; // <--- C++14 compatibility
+
 Dummy::Dummy()
-    : Symbol(default_Dummy_prefix_
+    : Symbol(std::string(default_Dummy_prefix_, default_Dummy_prefix_+default_Dummy_prefix_len_)
              + to_string(
 #ifdef WITH_SYMENGINE_THREAD_SAFE
-                 count_
-// Dummy::count_.fetch_add(1, std::memory_order_relaxed)
+                 Dummy::count_.fetch_add(1, std::memory_order_relaxed)
 #else
                   count_
 #endif
@@ -58,9 +58,7 @@ Dummy::Dummy()
     // this is inefficient: we should not construct Dummy instances using
     // Dummy() (since we need the thread-safely incremented value *at
     // construction of Symbol*).
-    dummy_index = count_;
-    count_ += 1;
-    // dummy_index = std::stoul(get_name().substr(default_Dummy_prefix_len_));
+    dummy_index = std::stoul(get_name().substr(default_Dummy_prefix_len_));
 #else
     dummy_index = count_;
     count_ += 1;
