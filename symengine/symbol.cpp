@@ -5,12 +5,9 @@ namespace SymEngine
 {
 
 Symbol::Symbol(const std::string &name)
-    : name_{name}
-{
-    SYMENGINE_ASSIGN_TYPEID()
-}
+    : name_{name} {SYMENGINE_ASSIGN_TYPEID()}
 
-hash_t Symbol::__hash__() const
+      hash_t Symbol::__hash__() const
 {
     hash_t seed = 0;
     hash_combine(seed, name_);
@@ -40,27 +37,27 @@ RCP<const Symbol> Symbol::as_dummy() const
 
 #ifdef WITH_SYMENGINE_THREAD_SAFE
 size_t Dummy::count_ = 0;
-//std::atomic<size_t> Dummy::count_ = 0;
+// std::atomic<size_t> Dummy::count_ = 0;
 #else
 size_t Dummy::count_ = 0;
 #endif
 
 Dummy::Dummy()
-    : Symbol(
-        default_Dummy_prefix_ + to_string(
+    : Symbol(default_Dummy_prefix_
+             + to_string(
 #ifdef WITH_SYMENGINE_THREAD_SAFE
-            count_
-            //Dummy::count_.fetch_add(1, std::memory_order_relaxed)
+                 count_
+// Dummy::count_.fetch_add(1, std::memory_order_relaxed)
 #else
-            count_
+                  count_
 #endif
-            )
-        )
+                 ))
 {
     SYMENGINE_ASSIGN_TYPEID()
 #ifdef WITH_SYMENGINE_THREAD_SAFE
-    // this is inefficient: we should not construct Dummy instances using Dummy()
-    // (since we need the thread-safely incremented value *at construction of Symbol*).
+    // this is inefficient: we should not construct Dummy instances using
+    // Dummy() (since we need the thread-safely incremented value *at
+    // construction of Symbol*).
     dummy_index = count_;
     count_ += 1;
     // dummy_index = std::stoul(get_name().substr(default_Dummy_prefix_len_));
@@ -83,13 +80,10 @@ Dummy::Dummy(const std::string &name) : Symbol(name)
 #endif
 }
 
-Dummy::Dummy(const std::string &name, size_t dummy_index) : Symbol(name), dummy_index(dummy_index)
-{
-    SYMENGINE_ASSIGN_TYPEID()
-}
+Dummy::Dummy(const std::string &name, size_t dummy_index)
+    : Symbol(name), dummy_index(dummy_index){SYMENGINE_ASSIGN_TYPEID()}
 
-
-hash_t Dummy::__hash__() const
+      hash_t Dummy::__hash__() const
 {
     hash_t seed = 0;
     hash_combine(seed, get_name());

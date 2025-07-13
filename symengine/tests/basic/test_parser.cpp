@@ -646,22 +646,27 @@ TEST_CASE("Parsing: functions", "[parser]")
         REQUIRE(is_a<Derivative>(*res));
 
         RCP<const Basic> fx = function_symbol("f", x);
-        RCP<const Basic> dfdx = diff(fx, rcp_static_cast<const Symbol>(x), false);
+        RCP<const Basic> dfdx
+            = diff(fx, rcp_static_cast<const Symbol>(x), false);
         REQUIRE(eq(*res, *dfdx));
 
         s = "Derivative(f(x), x, x)";
         res = parse(s);
-        RCP<const Basic> d2fdx2 = diff(dfdx, rcp_static_cast<const Symbol>(x), false);
+        RCP<const Basic> d2fdx2
+            = diff(dfdx, rcp_static_cast<const Symbol>(x), false);
         REQUIRE(eq(*res, *d2fdx2));
     }
     {
         s = "g(x, y) - Derivative(g(x, y), x, x, x, y, y)";
         res = parse(s);
         RCP<const Basic> gxy = function_symbol("g", {x, y});
-        RCP<const Basic> d5gdx3dy2 = diff(gxy, rcp_static_cast<const Symbol>(x), false);
-        for (int i=0; i<2; ++i) {
-            d5gdx3dy2 = diff(d5gdx3dy2, rcp_static_cast<const Symbol>(x), false);
-            d5gdx3dy2 = diff(d5gdx3dy2, rcp_static_cast<const Symbol>(y), false);
+        RCP<const Basic> d5gdx3dy2
+            = diff(gxy, rcp_static_cast<const Symbol>(x), false);
+        for (int i = 0; i < 2; ++i) {
+            d5gdx3dy2
+                = diff(d5gdx3dy2, rcp_static_cast<const Symbol>(x), false);
+            d5gdx3dy2
+                = diff(d5gdx3dy2, rcp_static_cast<const Symbol>(y), false);
         }
         REQUIRE(eq(*res, *sub(gxy, d5gdx3dy2)));
     }

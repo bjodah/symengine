@@ -10,240 +10,294 @@ int SbmlTokenizer::lex(sbml::parser::semantic_type *yylval)
 {
     for (;;) {
         tok = cur;
-        
-#line 15 "sbml_tokenizer.cpp"
-{
-	unsigned char yych;
-	static const unsigned char yybm[] = {
-		  0,   0,   0,   0,   0,   0,   0,   0, 
-		  0,  32,  32,  32,   0,  32,   0,   0, 
-		  0,   0,   0,   0,   0,   0,   0,   0, 
-		  0,   0,   0,   0,   0,   0,   0,   0, 
-		 32,   0,   0,   0,   0,   0,   0,   0, 
-		  0,   0,   0,   0,   0,   0,   0,   0, 
-		192, 192, 192, 192, 192, 192, 192, 192, 
-		192, 192,   0,   0,   0,   0,   0,   0, 
-		  0, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128,   0,   0,   0,   0, 128, 
-		  0, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128,   0,   0,   0,   0,   0, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-		128, 128, 128, 128, 128, 128, 128, 128, 
-	};
-	yych = *cur;
-	if (yybm[0+yych] & 32) {
-		goto yy4;
-	}
-	if (yych <= '<') {
-		if (yych <= '&') {
-			if (yych <= '!') {
-				if (yych <= 0x00) goto yy1;
-				if (yych <= 0x1F) goto yy2;
-				goto yy5;
-			} else {
-				if (yych <= '$') goto yy2;
-				if (yych <= '%') goto yy7;
-				goto yy8;
-			}
-		} else {
-			if (yych <= '.') {
-				if (yych <= '\'') goto yy2;
-				if (yych <= '-') goto yy7;
-				goto yy9;
-			} else {
-				if (yych <= '/') goto yy7;
-				if (yych <= '9') goto yy10;
-				if (yych <= ';') goto yy2;
-				goto yy12;
-			}
-		}
-	} else {
-		if (yych <= '^') {
-			if (yych <= '@') {
-				if (yych <= '=') goto yy13;
-				if (yych <= '>') goto yy14;
-				goto yy2;
-			} else {
-				if (yych <= 'Z') goto yy15;
-				if (yych <= ']') goto yy2;
-				goto yy7;
-			}
-		} else {
-			if (yych <= 'z') {
-				if (yych == '`') goto yy2;
-				goto yy15;
-			} else {
-				if (yych == '|') goto yy16;
-				if (yych <= 0x7F) goto yy2;
-				goto yy15;
-			}
-		}
-	}
-yy1:
-	++cur;
-#line 33 "sbml_tokenizer.re"
-	{ return sbml::parser::token::yytokentype::END_OF_FILE; }
-#line 105 "sbml_tokenizer.cpp"
-yy2:
-	++cur;
-yy3:
-#line 32 "sbml_tokenizer.re"
-	{ throw SymEngine::ParseError("Unknown token: '"+token()+"'"); }
-#line 111 "sbml_tokenizer.cpp"
-yy4:
-	yych = *++cur;
-	if (yybm[0+yych] & 32) {
-		goto yy4;
-	}
-#line 34 "sbml_tokenizer.re"
-	{ continue; }
-#line 119 "sbml_tokenizer.cpp"
-yy5:
-	yych = *++cur;
-	if (yych == '=') goto yy17;
-yy6:
-#line 37 "sbml_tokenizer.re"
-	{ return tok[0]; }
-#line 126 "sbml_tokenizer.cpp"
-yy7:
-	++cur;
-	goto yy6;
-yy8:
-	yych = *++cur;
-	if (yych == '&') goto yy18;
-	goto yy3;
-yy9:
-	yych = *++cur;
-	if (yych <= '/') goto yy3;
-	if (yych <= '9') goto yy19;
-	goto yy3;
-yy10:
-	yych = *(mar = ++cur);
-	if (yybm[0+yych] & 64) {
-		goto yy10;
-	}
-	if (yych <= 'D') {
-		if (yych == '.') goto yy20;
-	} else {
-		if (yych <= 'E') goto yy21;
-		if (yych == 'e') goto yy21;
-	}
-yy11:
-#line 45 "sbml_tokenizer.re"
-	{ yylval->emplace<std::string>() = token(); return sbml::parser::token::yytokentype::NUMERIC; }
-#line 153 "sbml_tokenizer.cpp"
-yy12:
-	yych = *++cur;
-	if (yych == '=') goto yy23;
-	goto yy6;
-yy13:
-	yych = *++cur;
-	if (yych == '=') goto yy24;
-	goto yy3;
-yy14:
-	yych = *++cur;
-	if (yych == '=') goto yy25;
-	goto yy6;
-yy15:
-	yych = *++cur;
-	if (yybm[0+yych] & 128) {
-		goto yy15;
-	}
-#line 44 "sbml_tokenizer.re"
-	{ yylval->emplace<std::string>() = token(); return sbml::parser::token::yytokentype::IDENTIFIER; }
-#line 173 "sbml_tokenizer.cpp"
-yy16:
-	yych = *++cur;
-	if (yych == '|') goto yy26;
-	goto yy3;
-yy17:
-	++cur;
-#line 40 "sbml_tokenizer.re"
-	{ return sbml::parser::token::yytokentype::NE; }
-#line 182 "sbml_tokenizer.cpp"
-yy18:
-	++cur;
-#line 42 "sbml_tokenizer.re"
-	{ return sbml::parser::token::yytokentype::AND; }
-#line 187 "sbml_tokenizer.cpp"
-yy19:
-	yych = *(mar = ++cur);
-	if (yych <= 'D') {
-		if (yych <= '/') goto yy11;
-		if (yych <= '9') goto yy19;
-		goto yy11;
-	} else {
-		if (yych <= 'E') goto yy21;
-		if (yych == 'e') goto yy21;
-		goto yy11;
-	}
-yy20:
-	yych = *++cur;
-	if (yych <= '/') goto yy11;
-	if (yych <= '9') goto yy19;
-	goto yy11;
-yy21:
-	yych = *++cur;
-	if (yych <= ',') {
-		if (yych == '+') goto yy27;
-	} else {
-		if (yych <= '-') goto yy27;
-		if (yych <= '/') goto yy22;
-		if (yych <= '9') goto yy28;
-	}
-yy22:
-	cur = mar;
-	goto yy11;
-yy23:
-	++cur;
-#line 38 "sbml_tokenizer.re"
-	{ return sbml::parser::token::yytokentype::LE; }
-#line 220 "sbml_tokenizer.cpp"
-yy24:
-	++cur;
-#line 41 "sbml_tokenizer.re"
-	{ return sbml::parser::token::yytokentype::EQ; }
-#line 225 "sbml_tokenizer.cpp"
-yy25:
-	++cur;
-#line 39 "sbml_tokenizer.re"
-	{ return sbml::parser::token::yytokentype::GE; }
-#line 230 "sbml_tokenizer.cpp"
-yy26:
-	++cur;
-#line 43 "sbml_tokenizer.re"
-	{ return sbml::parser::token::yytokentype::OR; }
-#line 235 "sbml_tokenizer.cpp"
-yy27:
-	yych = *++cur;
-	if (yych <= '/') goto yy22;
-	if (yych >= ':') goto yy22;
-yy28:
-	yych = *++cur;
-	if (yych <= '/') goto yy11;
-	if (yych <= '9') goto yy28;
-	goto yy11;
-}
-#line 46 "sbml_tokenizer.re"
 
+#line 15 "sbml_tokenizer.cpp"
+        {
+            unsigned char yych;
+            static const unsigned char yybm[] = {
+                0,   0,   0,   0,   0,   0,   0,   0,   0,   32,  32,  32,  0,
+                32,  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+                0,   0,   0,   0,   0,   0,   32,  0,   0,   0,   0,   0,   0,
+                0,   0,   0,   0,   0,   0,   0,   0,   0,   192, 192, 192, 192,
+                192, 192, 192, 192, 192, 192, 0,   0,   0,   0,   0,   0,   0,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                0,   0,   0,   0,   128, 0,   128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 0,   0,   0,   0,   0,   128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128,
+                128, 128, 128, 128, 128, 128, 128, 128, 128,
+            };
+            yych = *cur;
+            if (yybm[0 + yych] & 32) {
+                goto yy4;
+            }
+            if (yych <= '<') {
+                if (yych <= '&') {
+                    if (yych <= '!') {
+                        if (yych <= 0x00)
+                            goto yy1;
+                        if (yych <= 0x1F)
+                            goto yy2;
+                        goto yy5;
+                    } else {
+                        if (yych <= '$')
+                            goto yy2;
+                        if (yych <= '%')
+                            goto yy7;
+                        goto yy8;
+                    }
+                } else {
+                    if (yych <= '.') {
+                        if (yych <= '\'')
+                            goto yy2;
+                        if (yych <= '-')
+                            goto yy7;
+                        goto yy9;
+                    } else {
+                        if (yych <= '/')
+                            goto yy7;
+                        if (yych <= '9')
+                            goto yy10;
+                        if (yych <= ';')
+                            goto yy2;
+                        goto yy12;
+                    }
+                }
+            } else {
+                if (yych <= '^') {
+                    if (yych <= '@') {
+                        if (yych <= '=')
+                            goto yy13;
+                        if (yych <= '>')
+                            goto yy14;
+                        goto yy2;
+                    } else {
+                        if (yych <= 'Z')
+                            goto yy15;
+                        if (yych <= ']')
+                            goto yy2;
+                        goto yy7;
+                    }
+                } else {
+                    if (yych <= 'z') {
+                        if (yych == '`')
+                            goto yy2;
+                        goto yy15;
+                    } else {
+                        if (yych == '|')
+                            goto yy16;
+                        if (yych <= 0x7F)
+                            goto yy2;
+                        goto yy15;
+                    }
+                }
+            }
+        yy1:
+            ++cur;
+#line 33 "sbml_tokenizer.re"
+            {
+                return sbml::parser::token::yytokentype::END_OF_FILE;
+            }
+#line 105 "sbml_tokenizer.cpp"
+        yy2:
+            ++cur;
+        yy3 :
+#line 32 "sbml_tokenizer.re"
+        {
+            throw SymEngine::ParseError("Unknown token: '" + token() + "'");
+        }
+#line 111 "sbml_tokenizer.cpp"
+        yy4:
+            yych = *++cur;
+            if (yybm[0 + yych] & 32) {
+                goto yy4;
+            }
+#line 34 "sbml_tokenizer.re"
+            {
+                continue;
+            }
+#line 119 "sbml_tokenizer.cpp"
+        yy5:
+            yych = *++cur;
+            if (yych == '=')
+                goto yy17;
+        yy6 :
+#line 37 "sbml_tokenizer.re"
+        {
+            return tok[0];
+        }
+#line 126 "sbml_tokenizer.cpp"
+        yy7:
+            ++cur;
+            goto yy6;
+        yy8:
+            yych = *++cur;
+            if (yych == '&')
+                goto yy18;
+            goto yy3;
+        yy9:
+            yych = *++cur;
+            if (yych <= '/')
+                goto yy3;
+            if (yych <= '9')
+                goto yy19;
+            goto yy3;
+        yy10:
+            yych = *(mar = ++cur);
+            if (yybm[0 + yych] & 64) {
+                goto yy10;
+            }
+            if (yych <= 'D') {
+                if (yych == '.')
+                    goto yy20;
+            } else {
+                if (yych <= 'E')
+                    goto yy21;
+                if (yych == 'e')
+                    goto yy21;
+            }
+        yy11 :
+#line 45 "sbml_tokenizer.re"
+        {
+            yylval->emplace<std::string>() = token();
+            return sbml::parser::token::yytokentype::NUMERIC;
+        }
+#line 153 "sbml_tokenizer.cpp"
+        yy12:
+            yych = *++cur;
+            if (yych == '=')
+                goto yy23;
+            goto yy6;
+        yy13:
+            yych = *++cur;
+            if (yych == '=')
+                goto yy24;
+            goto yy3;
+        yy14:
+            yych = *++cur;
+            if (yych == '=')
+                goto yy25;
+            goto yy6;
+        yy15:
+            yych = *++cur;
+            if (yybm[0 + yych] & 128) {
+                goto yy15;
+            }
+#line 44 "sbml_tokenizer.re"
+            {
+                yylval->emplace<std::string>() = token();
+                return sbml::parser::token::yytokentype::IDENTIFIER;
+            }
+#line 173 "sbml_tokenizer.cpp"
+        yy16:
+            yych = *++cur;
+            if (yych == '|')
+                goto yy26;
+            goto yy3;
+        yy17:
+            ++cur;
+#line 40 "sbml_tokenizer.re"
+            {
+                return sbml::parser::token::yytokentype::NE;
+            }
+#line 182 "sbml_tokenizer.cpp"
+        yy18:
+            ++cur;
+#line 42 "sbml_tokenizer.re"
+            {
+                return sbml::parser::token::yytokentype::AND;
+            }
+#line 187 "sbml_tokenizer.cpp"
+        yy19:
+            yych = *(mar = ++cur);
+            if (yych <= 'D') {
+                if (yych <= '/')
+                    goto yy11;
+                if (yych <= '9')
+                    goto yy19;
+                goto yy11;
+            } else {
+                if (yych <= 'E')
+                    goto yy21;
+                if (yych == 'e')
+                    goto yy21;
+                goto yy11;
+            }
+        yy20:
+            yych = *++cur;
+            if (yych <= '/')
+                goto yy11;
+            if (yych <= '9')
+                goto yy19;
+            goto yy11;
+        yy21:
+            yych = *++cur;
+            if (yych <= ',') {
+                if (yych == '+')
+                    goto yy27;
+            } else {
+                if (yych <= '-')
+                    goto yy27;
+                if (yych <= '/')
+                    goto yy22;
+                if (yych <= '9')
+                    goto yy28;
+            }
+        yy22:
+            cur = mar;
+            goto yy11;
+        yy23:
+            ++cur;
+#line 38 "sbml_tokenizer.re"
+            {
+                return sbml::parser::token::yytokentype::LE;
+            }
+#line 220 "sbml_tokenizer.cpp"
+        yy24:
+            ++cur;
+#line 41 "sbml_tokenizer.re"
+            {
+                return sbml::parser::token::yytokentype::EQ;
+            }
+#line 225 "sbml_tokenizer.cpp"
+        yy25:
+            ++cur;
+#line 39 "sbml_tokenizer.re"
+            {
+                return sbml::parser::token::yytokentype::GE;
+            }
+#line 230 "sbml_tokenizer.cpp"
+        yy26:
+            ++cur;
+#line 43 "sbml_tokenizer.re"
+            {
+                return sbml::parser::token::yytokentype::OR;
+            }
+#line 235 "sbml_tokenizer.cpp"
+        yy27:
+            yych = *++cur;
+            if (yych <= '/')
+                goto yy22;
+            if (yych >= ':')
+                goto yy22;
+        yy28:
+            yych = *++cur;
+            if (yych <= '/')
+                goto yy11;
+            if (yych <= '9')
+                goto yy28;
+            goto yy11;
+        }
+#line 46 "sbml_tokenizer.re"
     }
 }
 

@@ -551,9 +551,8 @@ int inverse_gauss_jordan(const DenseMatrix &A, DenseMatrix &B);
 void fraction_free_LU_solve(const DenseMatrix &A, const DenseMatrix &b,
                             DenseMatrix &x);
 
-int fraction_free_gauss_jordan_solve(const DenseMatrix &A,
-                                     const DenseMatrix &b, DenseMatrix &x,
-                                     bool pivot = true);
+int fraction_free_gauss_jordan_solve(const DenseMatrix &A, const DenseMatrix &b,
+                                     DenseMatrix &x, bool pivot = true);
 
 void LU_solve(const DenseMatrix &A, const DenseMatrix &b, DenseMatrix &x);
 void pivoted_LU_solve(const DenseMatrix &A, const DenseMatrix &b,

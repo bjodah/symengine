@@ -47,7 +47,8 @@ public:
     std::tuple<RCP<const Basic>, RCP<const Basic>>
     parse_implicit_mul(const std::string &expr);
     explicit Parser(std::shared_ptr<const ParserSettings> settings);
-    Parser(const std::map<const std::string, const RCP<const Basic>> & constants);
+    Parser(
+        const std::map<const std::string, const RCP<const Basic>> &constants);
     Parser();
     ~Parser();
 };

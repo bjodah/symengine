@@ -357,12 +357,15 @@ RCP<const Basic> SbmlParser::parse_identifier(const std::string &expr)
 
 SbmlParser::SbmlParser(
     const std::map<const std::string, const RCP<const Basic>> &parser_constants)
-    : Parser([&](){
-        auto ps = std::make_shared<ParserSettings>();
-        ps->convert_xor = true;
-        ps->constants = std::make_shared<std::map<const std::string, const RCP<const Basic>>>(parser_constants);
-        return ps;
-    }()), m_tokenizer{new SbmlTokenizer()}
+    : Parser([&]() {
+          auto ps = std::make_shared<ParserSettings>();
+          ps->convert_xor = true;
+          ps->constants = std::make_shared<
+              std::map<const std::string, const RCP<const Basic>>>(
+              parser_constants);
+          return ps;
+      }()),
+      m_tokenizer{new SbmlTokenizer()}
 {
 }
 

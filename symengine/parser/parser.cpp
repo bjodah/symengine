@@ -9,8 +9,8 @@
 namespace SymEngine
 {
 
-RCP<const Basic>
-parse(const std::string &s, std::shared_ptr<const ParserSettings> settings)
+RCP<const Basic> parse(const std::string &s,
+                       std::shared_ptr<const ParserSettings> settings)
 {
     // If you need to parse multiple strings, initialize Parser first, then
     // call Parser::parse() repeatedly.
@@ -21,11 +21,9 @@ parse(const std::string &s, std::shared_ptr<const ParserSettings> settings)
         Parser p{};
         return p.parse(s);
     }
-
 }
 
-RCP<const Basic>
-parse(const std::string &s, bool convert_xor)
+RCP<const Basic> parse(const std::string &s, bool convert_xor)
 {
     auto ps = std::make_shared<ParserSettings>();
     ps->convert_xor = convert_xor;
@@ -34,11 +32,14 @@ parse(const std::string &s, bool convert_xor)
     return p.parse(s);
 }
 RCP<const Basic>
-parse(const std::string &s, bool convert_xor, const std::map<const std::string, const RCP<const Basic>> & constants)
+parse(const std::string &s, bool convert_xor,
+      const std::map<const std::string, const RCP<const Basic>> &constants)
 {
     std::shared_ptr<ParserSettings> ps{};
     ps->convert_xor = convert_xor;
-    ps->constants = std::make_shared<std::map<const std::string, const RCP<const Basic>>>(constants);
+    ps->constants
+        = std::make_shared<std::map<const std::string, const RCP<const Basic>>>(
+            constants);
     Parser p(ps);
     return p.parse(s);
 }
@@ -359,45 +360,51 @@ Parser::parse_implicit_mul(const std::string &expr)
 }
 
 std::shared_ptr<std::map<const std::string, const RCP<const Basic>>>
-get_default_parser_constants() {
+get_default_parser_constants()
+{
     const static std::map<const std::string, const RCP<const Basic>>
         default_parser_constants = {{"e", E},
-                            {"E", E},
-                            {"EulerGamma", EulerGamma},
-                            {"Catalan", Catalan},
-                            {"GoldenRatio", GoldenRatio},
-                            {"pi", pi},
-                            {"I", I},
-                            {"oo", Inf},
-                            {"inf", Inf},
-                            {"zoo", ComplexInf},
-                            {"nan", Nan},
-                            {"True", boolTrue},
-                            {"False", boolFalse}};
-    return std::make_shared<std::map<const std::string, const RCP<const Basic>>>(default_parser_constants);
+                                    {"E", E},
+                                    {"EulerGamma", EulerGamma},
+                                    {"Catalan", Catalan},
+                                    {"GoldenRatio", GoldenRatio},
+                                    {"pi", pi},
+                                    {"I", I},
+                                    {"oo", Inf},
+                                    {"inf", Inf},
+                                    {"zoo", ComplexInf},
+                                    {"nan", Nan},
+                                    {"True", boolTrue},
+                                    {"False", boolFalse}};
+    return std::make_shared<
+        std::map<const std::string, const RCP<const Basic>>>(
+        default_parser_constants);
 }
-
 
 Parser::Parser(std::shared_ptr<const ParserSettings> settings)
     : settings(settings), m_tokenizer{new Tokenizer()}
 {
 }
 
-Parser::Parser() : Parser([](){
-    auto ps = std::make_shared<ParserSettings>();
-    ps->convert_xor = true;
-    ps->constants = get_default_parser_constants();
-    return ps;
-}())
+Parser::Parser()
+    : Parser([]() {
+          auto ps = std::make_shared<ParserSettings>();
+          ps->convert_xor = true;
+          ps->constants = get_default_parser_constants();
+          return ps;
+      }())
 {
 }
 
-Parser::Parser(const std::map<const std::string, const RCP<const Basic>> & constants) : Parser([&](){
-    auto ps = std::make_shared<ParserSettings>();
-    ps->convert_xor = true;
-    ps->constants = std::make_shared<std::map<const std::string, const RCP<const Basic>>>(constants);
-    return ps;
-}())
+Parser::Parser(
+    const std::map<const std::string, const RCP<const Basic>> &constants)
+    : Parser([&]() {
+          auto ps = std::make_shared<ParserSettings>();
+          ps->convert_xor = true;
+          ps->constants = std::make_shared<
+              std::map<const std::string, const RCP<const Basic>>>(constants);
+          return ps;
+      }())
 {
 }
 
