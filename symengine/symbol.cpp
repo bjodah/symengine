@@ -36,46 +36,22 @@ RCP<const Symbol> Symbol::as_dummy() const
 }
 
 #ifdef WITH_SYMENGINE_THREAD_SAFE
-    std::atomic<size_t> Dummy::count_ {0};
+std::atomic<size_t> Dummy::count_{0};
 #else
 size_t Dummy::count_ = 0;
 #endif
 
-constexpr char Dummy::default_Dummy_prefix_[]; // <--- C++14 compatibility
+Dummy::Dummy() : Dummy("_Dummy") {}
 
-Dummy::Dummy()
-    : Symbol(std::string(default_Dummy_prefix_, default_Dummy_prefix_+default_Dummy_prefix_len_)
-             + to_string(
+Dummy::Dummy(const std::string &name)
+    : Dummy(name,
 #ifdef WITH_SYMENGINE_THREAD_SAFE
-                 Dummy::count_.fetch_add(1, std::memory_order_relaxed)
+            Dummy::count_.fetch_add(1, std::memory_order_relaxed)
 #else
-                  count_
+            Dummy::count_++
 #endif
-                 ))
+    )
 {
-    SYMENGINE_ASSIGN_TYPEID()
-#ifdef WITH_SYMENGINE_THREAD_SAFE
-    // this is inefficient: we should not construct Dummy instances using
-    // Dummy() (since we need the thread-safely incremented value *at
-    // construction of Symbol*).
-    dummy_index = std::stoul(get_name().substr(default_Dummy_prefix_len_));
-#else
-    dummy_index = count_;
-    count_ += 1;
-#endif
-}
-
-Dummy::Dummy(const std::string &name) : Symbol(name)
-{
-    SYMENGINE_ASSIGN_TYPEID()
-#ifdef WITH_SYMENGINE_THREAD_SAFE
-    dummy_index = count_;
-    count_ += 1;
-    // dummy_index = Dummy::count_.fetch_add(1, std::memory_order_relaxed);
-#else
-    dummy_index = count_;
-    count_ += 1;
-#endif
 }
 
 Dummy::Dummy(const std::string &name, size_t dummy_index)
