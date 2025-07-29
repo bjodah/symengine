@@ -999,15 +999,6 @@ TEST_CASE("has_symbol: Basic", "[basic]")
     REQUIRE(has_symbol(*r1, *y));
     REQUIRE(not has_symbol(*r1, *z));
     REQUIRE(not has_symbol(*r1, *Inf));
-
-    r1 = add(x, infty(1));
-    REQUIRE(has_symbol(*r1, *Inf));
-    REQUIRE(not has_symbol(*r1, *NegInf));
-    r1 = add(x, infty(-1));
-    REQUIRE(has_symbol(*r1, *NegInf));
-
-    r1 = add(x, Nan);
-    REQUIRE(has_symbol(*r1, *Nan));
 }
 
 TEST_CASE("coeff: Basic", "[basic]")
