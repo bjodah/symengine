@@ -90,6 +90,30 @@ void preorder_traversal_stop(const Basic &b, StopVisitor &v);
 void postorder_traversal_stop(const Basic &b, StopVisitor &v);
 void preorder_traversal_local_stop(const Basic &b, LocalStopVisitor &v);
 
+class HasBasicVisitor : public BaseVisitor<HasBasicVisitor, StopVisitor>
+{
+protected:
+    Ptr<const Basic> looking_for_;
+    bool has_;
+
+public:
+    HasBasicVisitor(Ptr<const Basic> x) : looking_for_(x) {}
+    bool apply(const Basic &b)
+    {
+        has_ = false;
+        stop_ = false;
+        preorder_traversal_stop(b, *this);
+        return has_;
+    }
+    void bvisit(const Basic &arg)
+    {
+        if (eq(*looking_for_, arg)) {
+            has_ = true;
+            stop_ = true;
+        }
+    }
+};
+
 class HasSymbolVisitor : public BaseVisitor<HasSymbolVisitor, StopVisitor>
 {
 protected:
@@ -115,25 +139,7 @@ public:
         }
     }
 
-    void bvisit(const Infty &x)
-    {
-        if (eq(*x_, x)) {
-            has_ = true;
-            stop_ = true;
-        }
-    }
-
-    void bvisit(const NaN &x)
-    {
-        // equality between NaN is iffy, even though at time of writing this is
-        // true: eq(*Nan, *Nan)
-        if (is_a<NaN>(*x_)) {
-            has_ = true;
-            stop_ = true;
-        }
-    }
-
-    void bvisit(const Basic &x){};
+    void bvisit(const Basic &x) {}
 
     bool apply(const Basic &b)
     {
@@ -144,6 +150,7 @@ public:
     }
 };
 
+bool has_basic(const Basic &b, const Basic &x);
 bool has_symbol(const Basic &b, const Basic &x);
 
 class CoeffVisitor : public BaseVisitor<CoeffVisitor, StopVisitor>
