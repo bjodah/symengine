@@ -3,7 +3,7 @@
 
 #include <symengine/basic.h>
 
-#include <shared>
+#include <memory> // std::shared_ptr
 
 namespace SymEngine
 {
