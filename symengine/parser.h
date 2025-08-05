@@ -3,6 +3,8 @@
 
 #include <symengine/basic.h>
 
+#include <shared>
+
 namespace SymEngine
 {
 
