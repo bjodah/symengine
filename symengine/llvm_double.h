@@ -43,6 +43,8 @@ protected:
     std::string membuffer;
     llvm::Function *get_function_type(llvm::LLVMContext *);
     virtual llvm::Type *get_float_type(llvm::LLVMContext *) = 0;
+    // Subclasses might want to call e.g. llvm::ExecutionEngine::InstallLazyFunctionCreator
+    virtual void modify_execution_engine(llvm::ExecutionEngine *) {}
 
 public:
     LLVMVisitor();
@@ -52,7 +54,6 @@ public:
               const bool symbolic_cse = false, unsigned opt_level = 3);
     void init(const vec_basic &inputs, const vec_basic &outputs,
               const bool symbolic_cse = false, unsigned opt_level = 3);
-
     // Helper functions
     void set_double(double d);
     llvm::Function *get_external_function(const std::string &name,
