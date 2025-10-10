@@ -43,7 +43,8 @@ protected:
     std::string membuffer;
     llvm::Function *get_function_type(llvm::LLVMContext *);
     virtual llvm::Type *get_float_type(llvm::LLVMContext *) = 0;
-    // Subclasses might want to call e.g. llvm::ExecutionEngine::InstallLazyFunctionCreator
+    // Subclasses might want to call e.g.
+    // llvm::ExecutionEngine::InstallLazyFunctionCreator
     virtual void modify_execution_engine(llvm::ExecutionEngine *) {}
 
 public:

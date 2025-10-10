@@ -9,8 +9,7 @@
 namespace SymEngine
 {
 
-std::shared_ptr<ParserSettings>
-ParserSettings::make_default()
+std::shared_ptr<ParserSettings> ParserSettings::make_default()
 {
     auto ps = std::make_shared<ParserSettings>();
     ps->constants = get_default_parser_constants();
@@ -77,13 +76,11 @@ typedef RCP<const Boolean> (*single_arg_boolean_func)(const RCP<const Basic> &);
 typedef RCP<const Boolean> (*double_arg_boolean_func)(const RCP<const Basic> &,
                                                       const RCP<const Basic> &);
 
-std::map<std::string, std::function<RCP<const Basic>(
-        const RCP<const Basic> &)>>
+std::map<std::string, std::function<RCP<const Basic>(const RCP<const Basic> &)>>
 get_default_parser_single_arg_functions()
 {
     static const std::map<
-        std::string,
-        std::function<RCP<const Basic>(const RCP<const Basic> &)>>
+        std::string, std::function<RCP<const Basic>(const RCP<const Basic> &)>>
         functions = {
             {"sin", sin},
             {"cos", cos},
@@ -200,7 +197,8 @@ RCP<const Basic> Parser::functionify(const std::string &name, vec_basic &params)
         };
 
     if (params.size() == 1) {
-        const auto single_arg_functions_ = get_default_parser_single_arg_functions();
+        const auto single_arg_functions_
+            = get_default_parser_single_arg_functions();
         auto it1 = single_arg_functions_.find(name);
         if (it1 != single_arg_functions_.end()) {
             return it1->second(params[0]);
@@ -368,18 +366,16 @@ get_default_parser_constants()
                                     {"nan", Nan},
                                     {"True", boolTrue},
                                     {"False", boolFalse}};
-    return std::make_shared<
-        std::map<std::string, const RCP<const Basic>>>(
+    return std::make_shared<std::map<std::string, const RCP<const Basic>>>(
         default_parser_constants);
 }
 
-using map_s_f2 = std::map<
-    std::string,
-    std::function<RCP<const Basic>(const RCP<const Basic> &,
-                                             const RCP<const Basic> &)>>;
+using map_s_f2
+    = std::map<std::string,
+               std::function<RCP<const Basic>(const RCP<const Basic> &,
+                                              const RCP<const Basic> &)>>;
 
-std::shared_ptr<map_s_f2>
-get_default_double_arg_functions()
+std::shared_ptr<map_s_f2> get_default_double_arg_functions()
 {
     const static map_s_f2 default_double_arg_functions = {
         {"pow", (double_arg_func)pow},
@@ -395,16 +391,15 @@ get_default_double_arg_functions()
     return std::make_shared<map_s_f2>(default_double_arg_functions);
 }
 
-using map_s_fv = std::map<std::string,
-                          std::function<RCP<const Basic>(vec_basic &)>>;
+using map_s_fv
+    = std::map<std::string, std::function<RCP<const Basic>(vec_basic &)>>;
 
-std::shared_ptr<map_s_fv>
-get_default_multi_arg_functions()
+std::shared_ptr<map_s_fv> get_default_multi_arg_functions()
 {
     const static map_s_fv default_multi_arg_functions = {
-            {"max", max},
-            {"min", min},
-            {"levi_civita", levi_civita},
+        {"max", max},
+        {"min", min},
+        {"levi_civita", levi_civita},
     };
     return std::make_shared<map_s_fv>(default_multi_arg_functions);
 }
@@ -431,7 +426,7 @@ Parser::Parser(
           ps->convert_xor = true;
           ps->constants = std::make_shared<
               std::map<std::string, const RCP<const Basic>>>();
-          for (auto const& c : constants) {
+          for (auto const &c : constants) {
               ps->constants->insert(c);
           }
           return ps;

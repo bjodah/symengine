@@ -362,7 +362,7 @@ SbmlParser::SbmlParser(
           ps->convert_xor = true;
           ps->constants = std::make_shared<
               std::map<std::string, const RCP<const Basic>>>();
-          for (auto const& c : parser_constants) {
+          for (auto const &c : parser_constants) {
               ps->constants->insert(c);
           }
           return ps;
