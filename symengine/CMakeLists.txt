@@ -82,6 +82,7 @@ set(SRC
     printers/mathml.cpp
     printers/sbml.cpp
     printers/strprinter.cpp
+    printers/srepr.cpp
     printers/latex.cpp
     printers/unicode.cpp
     printers/stringbox.cpp
@@ -219,6 +220,7 @@ set(HEADERS
     printers/sbml.h
     printers/strprinter.h
     printers/latex.h
+    printers/srepr.h
     printers/unicode.h
     printers/stringbox.h
     printers.h
