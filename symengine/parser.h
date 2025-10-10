@@ -20,9 +20,12 @@ struct ParserSettings {
         std::string, std::function<RCP<const Basic>(const RCP<const Basic> &,
                                                     const RCP<const Basic> &)>>>
         double_arg_functions{};
+    std::shared_ptr<std::map<
+        std::string, std::function<RCP<const Basic>(const RCP<const Basic> &)>>>
+        single_arg_functions{};
 };
 
-std::shared_ptr<std::map<std::string, const RCP<const Basic>>>
+std::shared_ptr<std::map<std::string, RCP<const Basic>>>
 get_default_parser_constants();
 std::shared_ptr<std::map<
     std::string, std::function<RCP<const Basic>(const RCP<const Basic> &,
@@ -31,6 +34,9 @@ get_default_double_arg_functions();
 std::shared_ptr<
     std::map<std::string, std::function<RCP<const Basic>(vec_basic &)>>>
 get_default_multi_arg_functions();
+std::shared_ptr<std::map<
+    std::string, std::function<RCP<const Basic>(const RCP<const Basic> &)>>>
+get_default_single_arg_functions();
 
 RCP<const Basic> parse(const std::string &s,
                        std::shared_ptr<const ParserSettings> settings = {});

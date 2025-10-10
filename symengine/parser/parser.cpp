@@ -15,6 +15,7 @@ std::shared_ptr<ParserSettings> ParserSettings::make_default()
     ps->constants = get_default_parser_constants();
     ps->double_arg_functions = get_default_double_arg_functions();
     ps->multi_arg_functions = get_default_multi_arg_functions();
+    ps->single_arg_functions = get_default_single_arg_functions();
     return ps;
 }
 
@@ -73,72 +74,72 @@ typedef RCP<const Basic> (*double_arg_func)(const RCP<const Basic> &,
 typedef RCP<const Boolean> (*single_arg_boolean_func)(const RCP<const Basic> &);
 typedef RCP<const Boolean> (*double_arg_boolean_func)(const RCP<const Basic> &,
                                                       const RCP<const Basic> &);
+using map_s_f1
+    = std::map<std::string,
+               std::function<RCP<const Basic>(const RCP<const Basic> &)>>;
 
-std::map<std::string, std::function<RCP<const Basic>(const RCP<const Basic> &)>>
-get_default_parser_single_arg_functions()
+std::shared_ptr<map_s_f1> get_default_single_arg_functions()
 {
-    static const std::map<
-        std::string, std::function<RCP<const Basic>(const RCP<const Basic> &)>>
-        functions = {
-            {"sin", sin},
-            {"cos", cos},
-            {"tan", tan},
-            {"cot", cot},
-            {"csc", csc},
-            {"sec", sec},
+    static const map_s_f1 functions = {
+        {"sin", sin},
+        {"cos", cos},
+        {"tan", tan},
+        {"cot", cot},
+        {"csc", csc},
+        {"sec", sec},
 
-            {"asin", asin},
-            {"arcsin", asin},
-            {"acos", acos},
-            {"arccos", acos},
-            {"atan", atan},
-            {"arctan", atan},
-            {"asec", asec},
-            {"arcsec", asec},
-            {"acsc", acsc},
-            {"arccsc", acsc},
-            {"acot", acot},
-            {"arccot", acot},
+        {"asin", asin},
+        {"arcsin", asin},
+        {"acos", acos},
+        {"arccos", acos},
+        {"atan", atan},
+        {"arctan", atan},
+        {"asec", asec},
+        {"arcsec", asec},
+        {"acsc", acsc},
+        {"arccsc", acsc},
+        {"acot", acot},
+        {"arccot", acot},
 
-            {"sinh", sinh},
-            {"cosh", cosh},
-            {"tanh", tanh},
-            {"coth", coth},
-            {"sech", sech},
-            {"csch", csch},
+        {"sinh", sinh},
+        {"cosh", cosh},
+        {"tanh", tanh},
+        {"coth", coth},
+        {"sech", sech},
+        {"csch", csch},
 
-            {"asinh", asinh},
-            {"arcsinh", asinh},
-            {"acosh", acosh},
-            {"arccosh", acosh},
-            {"atanh", atanh},
-            {"arctanh", atanh},
-            {"asech", asech},
-            {"arcsech", asech},
-            {"acoth", acoth},
-            {"arccoth", acoth},
-            {"acsch", acsch},
-            {"arccsch", acsch},
+        {"asinh", asinh},
+        {"arcsinh", asinh},
+        {"acosh", acosh},
+        {"arccosh", acosh},
+        {"atanh", atanh},
+        {"arctanh", atanh},
+        {"asech", asech},
+        {"arcsech", asech},
+        {"acoth", acoth},
+        {"arccoth", acoth},
+        {"acsch", acsch},
+        {"arccsch", acsch},
 
-            {"gamma", gamma},
-            {"sqrt", sqrt},
-            {"abs", abs},
-            {"sign", sign},
-            {"exp", exp},
-            {"erf", erf},
-            {"erfc", erfc},
-            {"loggamma", loggamma},
-            {"lambertw", lambertw},
-            {"dirichlet_eta", dirichlet_eta},
-            {"floor", floor},
-            {"ceiling", ceiling},
-            {"ln", (single_arg_func)log},
-            {"log", (single_arg_func)log},
-            {"zeta", (single_arg_func)zeta},
-            {"primepi", primepi},
-            {"primorial", primorial},
-        };
-    return functions;
+        {"gamma", gamma},
+        {"sqrt", sqrt},
+        {"abs", abs},
+        {"sign", sign},
+        {"exp", exp},
+        {"erf", erf},
+        {"erfc", erfc},
+        {"loggamma", loggamma},
+        {"lambertw", lambertw},
+        {"dirichlet_eta", dirichlet_eta},
+        {"floor", floor},
+        {"ceiling", ceiling},
+        {"ln", (single_arg_func)log},
+        {"log", (single_arg_func)log},
+        {"zeta", (single_arg_func)zeta},
+        {"primepi", primepi},
+        {"primorial", primorial},
+    };
+    return std::make_shared<map_s_f1>(functions);
 }
 
 RCP<const Basic> Parser::functionify(const std::string &name, vec_basic &params)
@@ -195,11 +196,11 @@ RCP<const Basic> Parser::functionify(const std::string &name, vec_basic &params)
         };
 
     if (params.size() == 1) {
-        const auto single_arg_functions_
-            = get_default_parser_single_arg_functions();
-        auto it1 = single_arg_functions_.find(name);
-        if (it1 != single_arg_functions_.end()) {
-            return it1->second(params[0]);
+        if (settings->single_arg_functions) {
+            auto it1 = settings->single_arg_functions->find(name);
+            if (it1 != settings->single_arg_functions->end()) {
+                return it1->second(params[0]);
+            }
         }
         auto it2 = single_arg_boolean_functions.find(name);
         if (it2 != single_arg_boolean_functions.end()) {
