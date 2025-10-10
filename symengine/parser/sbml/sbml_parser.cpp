@@ -361,8 +361,10 @@ SbmlParser::SbmlParser(
           auto ps = std::make_shared<ParserSettings>();
           ps->convert_xor = true;
           ps->constants = std::make_shared<
-              std::map<const std::string, const RCP<const Basic>>>(
-              parser_constants);
+              std::map<std::string, const RCP<const Basic>>>();
+          for (auto const& c : parser_constants) {
+              ps->constants->insert(c);
+          }
           return ps;
       }()),
       m_tokenizer{new SbmlTokenizer()}

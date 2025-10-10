@@ -9,6 +9,16 @@
 namespace SymEngine
 {
 
+std::shared_ptr<ParserSettings>
+ParserSettings::make_default()
+{
+    auto ps = std::make_shared<ParserSettings>();
+    ps->constants = get_default_parser_constants();
+    ps->double_arg_functions = get_default_double_arg_functions();
+    ps->multi_arg_functions = get_default_multi_arg_functions();
+    return ps;
+}
+
 RCP<const Basic> parse(const std::string &s,
                        std::shared_ptr<const ParserSettings> settings)
 {
@@ -25,9 +35,8 @@ RCP<const Basic> parse(const std::string &s,
 
 RCP<const Basic> parse(const std::string &s, bool convert_xor)
 {
-    auto ps = std::make_shared<ParserSettings>();
+    auto ps = ParserSettings::make_default();
     ps->convert_xor = convert_xor;
-    ps->constants = get_default_parser_constants();
     Parser p(ps);
     return p.parse(s);
 }
@@ -38,8 +47,11 @@ parse(const std::string &s, bool convert_xor,
     std::shared_ptr<ParserSettings> ps{};
     ps->convert_xor = convert_xor;
     ps->constants
-        = std::make_shared<std::map<const std::string, const RCP<const Basic>>>(
-            constants);
+        = std::make_shared<std::map<std::string, const RCP<const Basic>>>();
+    // insert from constants into ps->constants:
+    for (const auto &c : constants) {
+        ps->constants->insert(c);
+    }
     Parser p(ps);
     return p.parse(s);
 }
@@ -65,13 +77,13 @@ typedef RCP<const Boolean> (*single_arg_boolean_func)(const RCP<const Basic> &);
 typedef RCP<const Boolean> (*double_arg_boolean_func)(const RCP<const Basic> &,
                                                       const RCP<const Basic> &);
 
-static const std::map<const std::string, const std::function<RCP<const Basic>(
-                                             const RCP<const Basic> &)>> &
-init_parser_single_arg_functions()
+std::map<std::string, std::function<RCP<const Basic>(
+        const RCP<const Basic> &)>>
+get_default_parser_single_arg_functions()
 {
     static const std::map<
-        const std::string,
-        const std::function<RCP<const Basic>(const RCP<const Basic> &)>>
+        std::string,
+        std::function<RCP<const Basic>(const RCP<const Basic> &)>>
         functions = {
             {"sin", sin},
             {"cos", cos},
@@ -138,30 +150,6 @@ RCP<const Basic> Parser::functionify(const std::string &name, vec_basic &params)
 {
     const static std::map<
         const std::string,
-        const std::function<RCP<const Basic>(const RCP<const Basic> &,
-                                             const RCP<const Basic> &)>>
-        double_arg_functions = {
-            {"pow", (double_arg_func)pow},
-            {"beta", beta},
-            {"log", (double_arg_func)log},
-            {"zeta", (double_arg_func)zeta},
-            {"lowergamma", lowergamma},
-            {"uppergamma", uppergamma},
-            {"polygamma", polygamma},
-            {"kronecker_delta", kronecker_delta},
-            {"atan2", atan2},
-        };
-
-    const static std::map<const std::string,
-                          const std::function<RCP<const Basic>(vec_basic &)>>
-        multi_arg_functions = {
-            {"max", max},
-            {"min", min},
-            {"levi_civita", levi_civita},
-        };
-
-    const static std::map<
-        const std::string,
         const std::function<RCP<const Boolean>(const RCP<const Basic> &)>>
         single_arg_boolean_functions = {
             {"Eq", (single_arg_boolean_func)Eq},
@@ -212,7 +200,7 @@ RCP<const Basic> Parser::functionify(const std::string &name, vec_basic &params)
         };
 
     if (params.size() == 1) {
-        const auto &single_arg_functions_ = init_parser_single_arg_functions();
+        const auto single_arg_functions_ = get_default_parser_single_arg_functions();
         auto it1 = single_arg_functions_.find(name);
         if (it1 != single_arg_functions_.end()) {
             return it1->second(params[0]);
@@ -232,9 +220,11 @@ RCP<const Basic> Parser::functionify(const std::string &name, vec_basic &params)
     }
 
     if (params.size() == 2) {
-        auto it1 = double_arg_functions.find(name);
-        if (it1 != double_arg_functions.end()) {
-            return it1->second(params[0], params[1]);
+        if (settings->double_arg_functions) {
+            auto it1 = settings->double_arg_functions->find(name);
+            if (it1 != settings->double_arg_functions->end()) {
+                return it1->second(params[0], params[1]);
+            }
         }
         auto it2 = double_arg_boolean_functions.find(name);
         if (it2 != double_arg_boolean_functions.end()) {
@@ -242,9 +232,11 @@ RCP<const Basic> Parser::functionify(const std::string &name, vec_basic &params)
         }
     }
 
-    auto it1 = multi_arg_functions.find(name);
-    if (it1 != multi_arg_functions.end()) {
-        return it1->second(params);
+    if (settings->multi_arg_functions) {
+        auto it1 = settings->multi_arg_functions->find(name);
+        if (it1 != settings->multi_arg_functions->end()) {
+            return it1->second(params);
+        }
     }
 
     auto it2 = multi_arg_vec_boolean_functions.find(name);
@@ -359,10 +351,10 @@ Parser::parse_implicit_mul(const std::string &expr)
     return std::make_tuple(num, sym);
 }
 
-std::shared_ptr<std::map<const std::string, const RCP<const Basic>>>
+std::shared_ptr<std::map<std::string, const RCP<const Basic>>>
 get_default_parser_constants()
 {
-    const static std::map<const std::string, const RCP<const Basic>>
+    const static std::map<std::string, const RCP<const Basic>>
         default_parser_constants = {{"e", E},
                                     {"E", E},
                                     {"EulerGamma", EulerGamma},
@@ -377,8 +369,44 @@ get_default_parser_constants()
                                     {"True", boolTrue},
                                     {"False", boolFalse}};
     return std::make_shared<
-        std::map<const std::string, const RCP<const Basic>>>(
+        std::map<std::string, const RCP<const Basic>>>(
         default_parser_constants);
+}
+
+using map_s_f2 = std::map<
+    std::string,
+    std::function<RCP<const Basic>(const RCP<const Basic> &,
+                                             const RCP<const Basic> &)>>;
+
+std::shared_ptr<map_s_f2>
+get_default_double_arg_functions()
+{
+    const static map_s_f2 default_double_arg_functions = {
+        {"pow", (double_arg_func)pow},
+        {"beta", beta},
+        {"log", (double_arg_func)log},
+        {"zeta", (double_arg_func)zeta},
+        {"lowergamma", lowergamma},
+        {"uppergamma", uppergamma},
+        {"polygamma", polygamma},
+        {"kronecker_delta", kronecker_delta},
+        {"atan2", atan2},
+    };
+    return std::make_shared<map_s_f2>(default_double_arg_functions);
+}
+
+using map_s_fv = std::map<std::string,
+                          std::function<RCP<const Basic>(vec_basic &)>>;
+
+std::shared_ptr<map_s_fv>
+get_default_multi_arg_functions()
+{
+    const static map_s_fv default_multi_arg_functions = {
+            {"max", max},
+            {"min", min},
+            {"levi_civita", levi_civita},
+    };
+    return std::make_shared<map_s_fv>(default_multi_arg_functions);
 }
 
 Parser::Parser(std::shared_ptr<const ParserSettings> settings)
@@ -402,7 +430,10 @@ Parser::Parser(
           auto ps = std::make_shared<ParserSettings>();
           ps->convert_xor = true;
           ps->constants = std::make_shared<
-              std::map<const std::string, const RCP<const Basic>>>(constants);
+              std::map<std::string, const RCP<const Basic>>>();
+          for (auto const& c : constants) {
+              ps->constants->insert(c);
+          }
           return ps;
       }())
 {
