@@ -12,7 +12,7 @@ struct ParserSettings {
     static std::shared_ptr<ParserSettings> make_default();
 
     bool convert_xor{true};
-    std::shared_ptr<std::map<std::string, const RCP<const Basic>>> constants{};
+    std::shared_ptr<std::map<std::string, RCP<const Basic>>> constants{};
     std::shared_ptr<
         std::map<std::string, std::function<RCP<const Basic>(vec_basic &)>>>
         multi_arg_functions{};
