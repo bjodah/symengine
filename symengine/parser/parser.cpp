@@ -43,13 +43,11 @@ RCP<const Basic>
 parse(const std::string &s, bool convert_xor,
       const std::map<const std::string, const RCP<const Basic>> &constants)
 {
-    std::shared_ptr<ParserSettings> ps{};
+    std::shared_ptr<ParserSettings> ps = ParserSettings::make_default();
     ps->convert_xor = convert_xor;
-    ps->constants
-        = std::make_shared<std::map<std::string, const RCP<const Basic>>>();
-    // insert from constants into ps->constants:
+    ps->constants = std::make_shared<std::map<std::string, RCP<const Basic>>>();
     for (const auto &c : constants) {
-        ps->constants->insert(c);
+        (*ps->constants)[c.first] = c.second;
     }
     Parser p(ps);
     return p.parse(s);
@@ -349,10 +347,10 @@ Parser::parse_implicit_mul(const std::string &expr)
     return std::make_tuple(num, sym);
 }
 
-std::shared_ptr<std::map<std::string, const RCP<const Basic>>>
+std::shared_ptr<std::map<std::string, RCP<const Basic>>>
 get_default_parser_constants()
 {
-    const static std::map<std::string, const RCP<const Basic>>
+    const static std::map<std::string, RCP<const Basic>>
         default_parser_constants = {{"e", E},
                                     {"E", E},
                                     {"EulerGamma", EulerGamma},
@@ -366,7 +364,7 @@ get_default_parser_constants()
                                     {"nan", Nan},
                                     {"True", boolTrue},
                                     {"False", boolFalse}};
-    return std::make_shared<std::map<std::string, const RCP<const Basic>>>(
+    return std::make_shared<std::map<std::string, RCP<const Basic>>>(
         default_parser_constants);
 }
 
@@ -411,9 +409,8 @@ Parser::Parser(std::shared_ptr<const ParserSettings> settings)
 
 Parser::Parser()
     : Parser([]() {
-          auto ps = std::make_shared<ParserSettings>();
+          auto ps = ParserSettings::make_default();
           ps->convert_xor = true;
-          ps->constants = get_default_parser_constants();
           return ps;
       }())
 {
@@ -422,12 +419,10 @@ Parser::Parser()
 Parser::Parser(
     const std::map<const std::string, const RCP<const Basic>> &constants)
     : Parser([&]() {
-          auto ps = std::make_shared<ParserSettings>();
+          auto ps = ParserSettings::make_default();
           ps->convert_xor = true;
-          ps->constants = std::make_shared<
-              std::map<std::string, const RCP<const Basic>>>();
           for (auto const &c : constants) {
-              ps->constants->insert(c);
+              (*ps->constants)[c.first] = c.second;
           }
           return ps;
       }())
