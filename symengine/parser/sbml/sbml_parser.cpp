@@ -358,12 +358,10 @@ RCP<const Basic> SbmlParser::parse_identifier(const std::string &expr)
 SbmlParser::SbmlParser(
     const std::map<const std::string, const RCP<const Basic>> &parser_constants)
     : Parser([&]() {
-          auto ps = std::make_shared<ParserSettings>();
+          auto ps = ParserSettings::make_default();
           ps->convert_xor = true;
-          ps->constants = std::make_shared<
-              std::map<std::string, const RCP<const Basic>>>();
           for (auto const &c : parser_constants) {
-              ps->constants->insert(c);
+              (*ps->constants)[c.first] = c.second;
           }
           return ps;
       }()),
