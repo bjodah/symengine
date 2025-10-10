@@ -236,14 +236,14 @@ void LLVMVisitor::init(const vec_basic &inputs, const vec_basic &outputs,
     // Validate the generated code, checking for consistency.
     llvm::verifyFunction(*F, &llvm::outs());
 
-        std::cout << "LLVM IR" << std::endl;
-    // #if (LLVM_VERSION_MAJOR < 5)
-    //     module->dump();
-    // #else
-    //     module->print(llvm::errs(), nullptr);
-    // #endif
-    std::cout << "...LLVM errors:" << std::endl;
-    module->print(llvm::errs(), nullptr);
+    //     std::cout << "LLVM IR" << std::endl;
+    // // #if (LLVM_VERSION_MAJOR < 5)
+    // //     module->dump();
+    // // #else
+    // //     module->print(llvm::errs(), nullptr);
+    // // #endif
+    // std::cout << "...LLVM errors:" << std::endl;
+    // module->print(llvm::errs(), nullptr);
 
     // Optimize the function using default passes from PassBuilder
     // FunctionSimplificationPipeline for the opt_level
@@ -323,7 +323,7 @@ void LLVMVisitor::init(const vec_basic &inputs, const vec_basic &outputs,
 
     MemoryBufferRefCallback callback(membuffer);
     executionengine->setObjectCache(&callback);
-    std::cout << error << std::endl;
+    // std::cout << error << std::endl;
     executionengine->finalizeObject();
 
     // Get the symbol's address
