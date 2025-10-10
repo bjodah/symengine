@@ -1,4 +1,4 @@
-// A Bison parser, made by GNU Bison 3.7.5.
+// A Bison parser, made by GNU Bison 3.8.2.
 
 // Skeleton implementation for Bison LALR(1) parsers in C++
 
@@ -15,7 +15,7 @@
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 // As a special exception, you may create a larger work that contains
 // part or all of the Bison parser skeleton and distribute that work
@@ -178,9 +178,9 @@ namespace sbml {
   parser::syntax_error::~syntax_error () YY_NOEXCEPT YY_NOTHROW
   {}
 
-  /*---------------.
-  | symbol kinds.  |
-  `---------------*/
+  /*---------.
+  | symbol.  |
+  `---------*/
 
   // basic_symbol.
   template <typename Base>
@@ -212,12 +212,14 @@ namespace sbml {
 
 
 
+
   template <typename Base>
   parser::symbol_kind_type
   parser::basic_symbol<Base>::type_get () const YY_NOEXCEPT
   {
     return this->kind ();
   }
+
 
   template <typename Base>
   bool
@@ -254,25 +256,27 @@ namespace sbml {
   }
 
   // by_kind.
-  parser::by_kind::by_kind ()
+  parser::by_kind::by_kind () YY_NOEXCEPT
     : kind_ (symbol_kind::S_YYEMPTY)
   {}
 
 #if 201103L <= YY_CPLUSPLUS
-  parser::by_kind::by_kind (by_kind&& that)
+  parser::by_kind::by_kind (by_kind&& that) YY_NOEXCEPT
     : kind_ (that.kind_)
   {
     that.clear ();
   }
 #endif
 
-  parser::by_kind::by_kind (const by_kind& that)
+  parser::by_kind::by_kind (const by_kind& that) YY_NOEXCEPT
     : kind_ (that.kind_)
   {}
 
-  parser::by_kind::by_kind (token_kind_type t)
+  parser::by_kind::by_kind (token_kind_type t) YY_NOEXCEPT
     : kind_ (yytranslate_ (t))
   {}
+
+
 
   void
   parser::by_kind::clear () YY_NOEXCEPT
@@ -293,11 +297,13 @@ namespace sbml {
     return kind_;
   }
 
+
   parser::symbol_kind_type
   parser::by_kind::type_get () const YY_NOEXCEPT
   {
     return this->kind ();
   }
+
 
 
   // by_state.
@@ -500,7 +506,7 @@ namespace sbml {
   }
 
   void
-  parser::yypop_ (int n)
+  parser::yypop_ (int n) YY_NOEXCEPT
   {
     yystack_.pop (n);
   }
@@ -543,13 +549,13 @@ namespace sbml {
   }
 
   bool
-  parser::yy_pact_value_is_default_ (int yyvalue)
+  parser::yy_pact_value_is_default_ (int yyvalue) YY_NOEXCEPT
   {
     return yyvalue == yypact_ninf_;
   }
 
   bool
-  parser::yy_table_value_is_error_ (int yyvalue)
+  parser::yy_table_value_is_error_ (int yyvalue) YY_NOEXCEPT
   {
     return yyvalue == yytable_ninf_;
   }
@@ -726,79 +732,79 @@ namespace sbml {
   case 2: // st_expr: expr
 #line 78 "sbml_parser.yy"
            { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > (); p.res = yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > (); }
-#line 730 "sbml_parser.tab.cc"
+#line 736 "sbml_parser.tab.cc"
     break;
 
   case 3: // expr: expr '+' expr
 #line 82 "sbml_parser.yy"
                     { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = add(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 736 "sbml_parser.tab.cc"
+#line 742 "sbml_parser.tab.cc"
     break;
 
   case 4: // expr: expr '-' expr
 #line 83 "sbml_parser.yy"
                     { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = sub(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 742 "sbml_parser.tab.cc"
+#line 748 "sbml_parser.tab.cc"
     break;
 
   case 5: // expr: expr '*' expr
 #line 84 "sbml_parser.yy"
                     { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = mul(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 748 "sbml_parser.tab.cc"
+#line 754 "sbml_parser.tab.cc"
     break;
 
   case 6: // expr: expr '/' expr
 #line 85 "sbml_parser.yy"
                     { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = div(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 754 "sbml_parser.tab.cc"
+#line 760 "sbml_parser.tab.cc"
     break;
 
   case 7: // expr: expr '%' expr
 #line 86 "sbml_parser.yy"
                     { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = p.modulo(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 760 "sbml_parser.tab.cc"
+#line 766 "sbml_parser.tab.cc"
     break;
 
   case 8: // expr: expr '^' expr
 #line 87 "sbml_parser.yy"
                     { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = pow(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 766 "sbml_parser.tab.cc"
+#line 772 "sbml_parser.tab.cc"
     break;
 
   case 9: // expr: expr '<' expr
 #line 88 "sbml_parser.yy"
                     { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = Lt(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 772 "sbml_parser.tab.cc"
+#line 778 "sbml_parser.tab.cc"
     break;
 
   case 10: // expr: expr '>' expr
 #line 89 "sbml_parser.yy"
                     { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = Gt(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 778 "sbml_parser.tab.cc"
+#line 784 "sbml_parser.tab.cc"
     break;
 
   case 11: // expr: expr NE expr
 #line 90 "sbml_parser.yy"
                    { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = Ne(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 784 "sbml_parser.tab.cc"
+#line 790 "sbml_parser.tab.cc"
     break;
 
   case 12: // expr: expr LE expr
 #line 91 "sbml_parser.yy"
                    { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = Le(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 790 "sbml_parser.tab.cc"
+#line 796 "sbml_parser.tab.cc"
     break;
 
   case 13: // expr: expr GE expr
 #line 92 "sbml_parser.yy"
                    { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = Ge(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 796 "sbml_parser.tab.cc"
+#line 802 "sbml_parser.tab.cc"
     break;
 
   case 14: // expr: expr EQ expr
 #line 93 "sbml_parser.yy"
                    { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = Eq(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > (), yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 802 "sbml_parser.tab.cc"
+#line 808 "sbml_parser.tab.cc"
     break;
 
   case 15: // expr: expr OR expr
@@ -808,7 +814,7 @@ namespace sbml {
             s.insert(rcp_static_cast<const Boolean>(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > ()));
             s.insert(rcp_static_cast<const Boolean>(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()));
             yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = logical_or(s); }
-#line 812 "sbml_parser.tab.cc"
+#line 818 "sbml_parser.tab.cc"
     break;
 
   case 16: // expr: expr AND expr
@@ -818,72 +824,72 @@ namespace sbml {
             s.insert(rcp_static_cast<const Boolean>(yystack_[2].value.as < SymEngine::RCP<const SymEngine::Basic> > ()));
             s.insert(rcp_static_cast<const Boolean>(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()));
             yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = logical_and(s); }
-#line 822 "sbml_parser.tab.cc"
+#line 828 "sbml_parser.tab.cc"
     break;
 
   case 17: // expr: '(' expr ')'
 #line 104 "sbml_parser.yy"
                    { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = yystack_[1].value.as < SymEngine::RCP<const SymEngine::Basic> > (); }
-#line 828 "sbml_parser.tab.cc"
+#line 834 "sbml_parser.tab.cc"
     break;
 
   case 18: // expr: '-' expr
 #line 105 "sbml_parser.yy"
                             { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = neg(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 834 "sbml_parser.tab.cc"
+#line 840 "sbml_parser.tab.cc"
     break;
 
   case 19: // expr: '+' expr
 #line 106 "sbml_parser.yy"
                            { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > (); }
-#line 840 "sbml_parser.tab.cc"
+#line 846 "sbml_parser.tab.cc"
     break;
 
   case 20: // expr: '!' expr
 #line 107 "sbml_parser.yy"
                {
             yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = logical_not(rcp_static_cast<const Boolean>(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ())); }
-#line 847 "sbml_parser.tab.cc"
+#line 853 "sbml_parser.tab.cc"
     break;
 
   case 21: // expr: IDENTIFIER
 #line 109 "sbml_parser.yy"
                  { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = p.parse_identifier(yystack_[0].value.as < std::string > ()); }
-#line 853 "sbml_parser.tab.cc"
+#line 859 "sbml_parser.tab.cc"
     break;
 
   case 22: // expr: NUMERIC
 #line 110 "sbml_parser.yy"
               { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = p.parse_numeric(yystack_[0].value.as < std::string > ()); }
-#line 859 "sbml_parser.tab.cc"
+#line 865 "sbml_parser.tab.cc"
     break;
 
   case 23: // expr: IDENTIFIER '(' expr_list ')'
 #line 111 "sbml_parser.yy"
                                    { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = p.functionify(yystack_[3].value.as < std::string > (), yystack_[1].value.as < SymEngine::vec_basic > ()); }
-#line 865 "sbml_parser.tab.cc"
+#line 871 "sbml_parser.tab.cc"
     break;
 
   case 24: // expr: IDENTIFIER '(' ')'
 #line 112 "sbml_parser.yy"
                          { yylhs.value.as < SymEngine::RCP<const SymEngine::Basic> > () = p.functionify(yystack_[2].value.as < std::string > ()); }
-#line 871 "sbml_parser.tab.cc"
+#line 877 "sbml_parser.tab.cc"
     break;
 
   case 25: // expr_list: expr_list ',' expr
 #line 116 "sbml_parser.yy"
                          { yylhs.value.as < SymEngine::vec_basic > () = yystack_[2].value.as < SymEngine::vec_basic > (); yylhs.value.as < SymEngine::vec_basic > ().push_back(yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 877 "sbml_parser.tab.cc"
+#line 883 "sbml_parser.tab.cc"
     break;
 
   case 26: // expr_list: expr
 #line 117 "sbml_parser.yy"
            { yylhs.value.as < SymEngine::vec_basic > () = vec_basic(1, yystack_[0].value.as < SymEngine::RCP<const SymEngine::Basic> > ()); }
-#line 883 "sbml_parser.tab.cc"
+#line 889 "sbml_parser.tab.cc"
     break;
 
 
-#line 887 "sbml_parser.tab.cc"
+#line 893 "sbml_parser.tab.cc"
 
             default:
               break;
@@ -1068,6 +1074,10 @@ namespace sbml {
 
 
 
+
+
+
+
   const signed char parser::yypact_ninf_ = -20;
 
   const signed char parser::yytable_ninf_ = -1;
@@ -1216,7 +1226,7 @@ namespace sbml {
 #endif // YYDEBUG
 
   parser::symbol_kind_type
-  parser::yytranslate_ (int t)
+  parser::yytranslate_ (int t) YY_NOEXCEPT
   {
     // YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to
     // TOKEN-NUM as returned by yylex.
@@ -1258,12 +1268,12 @@ namespace sbml {
     if (t <= 0)
       return symbol_kind::S_YYEOF;
     else if (t <= code_max)
-      return YY_CAST (symbol_kind_type, translate_table[t]);
+      return static_cast <symbol_kind_type> (translate_table[t]);
     else
       return symbol_kind::S_YYUNDEF;
   }
 
 #line 4 "sbml_parser.yy"
 } // sbml
-#line 1269 "sbml_parser.tab.cc"
+#line 1279 "sbml_parser.tab.cc"
 
