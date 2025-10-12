@@ -57,7 +57,9 @@ public:
         }
         _addresses.insert(addr);
     }
-
+    virtual void save(const FunctionWrapper &b) {
+        throw NotImplementedError("FunctionWrapper saving needs subclassing and overriding.");
+    }
 private:
     std::set<uintptr_t> _addresses;
     //! Overload the rtti function to enable dynamic_cast
@@ -129,7 +131,14 @@ public:
             throw SerializationError(e.what());
         }
     }
-
+    virtual RCP<const Basic> load(RCP<const FunctionWrapper> &rcp_fw) {
+        throw SerializationError(StreamFmt()
+                                 << __FILE__ << ":" << __LINE__
+#ifndef _MSC_VER
+                                 << ": " << __PRETTY_FUNCTION__
+#endif
+                                 << "Loading of this type is not implemented.");
+    }
 private:
     std::unordered_map<uintptr_t, RCP<const Basic>> _rcp_map;
     //! Overload the rtti function to enable dynamic_cast
@@ -393,7 +402,13 @@ inline void save_basic(Archive &ar, const NumberWrapper &b)
 template <class Archive>
 inline void save_basic(Archive &ar, const FunctionWrapper &b)
 {
-    throw NotImplementedError("FunctionWrapper saving is not implemented yet.");
+    // RCPBasicAwareOutputArchive<Archive> *ar_ptr
+    //     = dynamic_cast<RCPBasicAwareOutputArchive<Archive> *>(&ar);
+    // if (not ar_ptr) {
+    //     throw SerializationError("Need a RCPBasicAwareOutputArchive");
+    // }
+    auto * ar_ptr = static_cast<RCPBasicAwareOutputArchive<Archive> *>(&ar);
+    ar_ptr->save(b);
 }
 
 //! Saving for SymEngine::RCP
@@ -730,14 +745,15 @@ RCP<const Basic> load_basic(Archive &ar, RCP<const FunctionSymbol> &)
     return make_rcp<const FunctionSymbol>(name, std::move(vec));
 }
 template <class Archive>
-RCP<const Basic> load_basic(Archive &ar, RCP<const FunctionWrapper> &)
+RCP<const Basic> load_basic(Archive &ar, RCP<const FunctionWrapper> &rcp_fw)
 {
-    throw SerializationError(StreamFmt()
-                             << __FILE__ << ":" << __LINE__
-#ifndef _MSC_VER
-                             << ": " << __PRETTY_FUNCTION__
-#endif
-                             << "Loading of this type is not implemented.");
+    // RCPBasicAwareInputArchive<Archive> *ar_ptr
+    //     = dynamic_cast<RCPBasicAwareInputArchive<Archive> *>(&ar);
+    // if (not ar_ptr) {
+    //     throw SerializationError("Need a RCPBasicAwareInputArchive");
+    // }
+    auto * ar_ptr = static_cast<RCPBasicAwareInputArchive<Archive> *>(&ar);
+    return ar_ptr->load(rcp_fw);
 }
 template <class Archive, class T>
 RCP<const Basic>
