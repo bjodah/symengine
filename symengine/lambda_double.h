@@ -352,9 +352,9 @@ public:
         result_ = [=](const T *x) { return std::abs(tmp(x)); };
     };
 
-    void bvisit(const Basic &)
+    void bvisit(const Basic &b)
     {
-        throw NotImplementedError("Not Implemented");
+        throw NotImplementedError("Not Implemented: " + type_code_name(b.get_type_code()));
     };
 
     void bvisit(const UnevaluatedExpr &x)
