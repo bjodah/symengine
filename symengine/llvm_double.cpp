@@ -1000,6 +1000,8 @@ void LLVMVisitor::loads(const std::string &s)
             .setErrorStr(&error)
             .create());
 
+    modify_execution_engine(executionengine.get());
+
     class MCJITObjectLoader : public llvm::ObjectCache
     {
         const std::string &s_;
@@ -1022,6 +1024,7 @@ void LLVMVisitor::loads(const std::string &s)
 
     MCJITObjectLoader loader(s);
     executionengine->setObjectCache(&loader);
+
     executionengine->finalizeObject();
     // Set func to compiled function pointer
     func = (intptr_t)executionengine->getPointerToFunction(F);
