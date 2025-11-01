@@ -9,6 +9,20 @@
 namespace SymEngine
 {
 
+using map_s_f1
+    = std::map<std::string,
+               std::function<RCP<const Basic>(const RCP<const Basic> &)>>;
+
+using map_s_f2
+    = std::map<std::string,
+               std::function<RCP<const Basic>(const RCP<const Basic> &,
+                                              const RCP<const Basic> &)>>;
+using map_s_f3 = std::map < std::string,
+      std::function < RCP<const Basic>(const RCP<const Basic> &,
+                                       const RCP<const Basic> &,
+                                       const RCP<const Basic> &)>>;
+
+
 std::shared_ptr<ParserSettings> ParserSettings::make_default()
 {
     auto ps = std::make_shared<ParserSettings>();
@@ -16,6 +30,7 @@ std::shared_ptr<ParserSettings> ParserSettings::make_default()
     ps->double_arg_functions = get_default_double_arg_functions();
     ps->multi_arg_functions = get_default_multi_arg_functions();
     ps->single_arg_functions = get_default_single_arg_functions();
+    ps->triple_arg_functions = std::make_shared<map_s_f3>();
     return ps;
 }
 
@@ -74,9 +89,6 @@ typedef RCP<const Basic> (*double_arg_func)(const RCP<const Basic> &,
 typedef RCP<const Boolean> (*single_arg_boolean_func)(const RCP<const Basic> &);
 typedef RCP<const Boolean> (*double_arg_boolean_func)(const RCP<const Basic> &,
                                                       const RCP<const Basic> &);
-using map_s_f1
-    = std::map<std::string,
-               std::function<RCP<const Basic>(const RCP<const Basic> &)>>;
 
 std::shared_ptr<map_s_f1> get_default_single_arg_functions()
 {
@@ -229,6 +241,15 @@ RCP<const Basic> Parser::functionify(const std::string &name, vec_basic &params)
         }
     }
 
+    if (params.size() == 3) {
+        if (settings->triple_arg_functions) {
+            auto it1 = settings->triple_arg_functions->find(name);
+            if (it1 != settings->triple_arg_functions->end()) {
+                return it1->second(params[0],params[1],params[2]);
+            }
+        }
+    }
+
     if (settings->multi_arg_functions) {
         auto it1 = settings->multi_arg_functions->find(name);
         if (it1 != settings->multi_arg_functions->end()) {
@@ -369,10 +390,6 @@ get_default_parser_constants()
         default_parser_constants);
 }
 
-using map_s_f2
-    = std::map<std::string,
-               std::function<RCP<const Basic>(const RCP<const Basic> &,
-                                              const RCP<const Basic> &)>>;
 
 std::shared_ptr<map_s_f2> get_default_double_arg_functions()
 {

@@ -23,6 +23,9 @@ struct ParserSettings {
     std::shared_ptr<std::map<
         std::string, std::function<RCP<const Basic>(const RCP<const Basic> &)>>>
         single_arg_functions{};
+    std::shared_ptr<std::map<
+        std::string, std::function<RCP<const Basic>(const RCP<const Basic> &)>>>
+        tripple_arg_functions{};
 };
 
 std::shared_ptr<std::map<std::string, RCP<const Basic>>>
