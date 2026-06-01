@@ -194,3 +194,6 @@ compile_commands.json
 gen_docs/
 /docs/Doxygen/tags/
 *.ipynb
+.antigravitycli/
+singular*
+symcse

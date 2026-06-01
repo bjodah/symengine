@@ -72,6 +72,7 @@ set(SRC
     parser/sbml/sbml_parser.cpp
     parser/sbml/sbml_tokenizer.cpp
     polys/basic_conversions.cpp
+    polys/groebner.cpp
     polys/msymenginepoly.cpp
     polys/uexprpoly.cpp
     polys/uintpoly.cpp
@@ -203,6 +204,7 @@ set(HEADERS
     parser/sbml/sbml_parser.h
     parser/sbml/sbml_tokenizer.h
     polys/basic_conversions.h
+    polys/groebner.h
     polys/cancel.h
     polys/uexprpoly.h
     polys/uintpoly_flint.h
