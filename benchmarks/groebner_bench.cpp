@@ -77,6 +77,23 @@ BenchResult run_repeated(unsigned iterations, F f)
     return BenchResult{last, elapsed.count()};
 }
 
+std::string algorithm_name(GroebnerAlgorithm alg)
+{
+    switch (alg) {
+        case GroebnerAlgorithm::Buchberger:
+            return "buchberger";
+        case GroebnerAlgorithm::F5B:
+            return "f5b";
+        case GroebnerAlgorithm::MoGVW:
+            return "mogvw";
+        case GroebnerAlgorithm::M4GB:
+            return "m4gb";
+        case GroebnerAlgorithm::Auto:
+            return "auto";
+    }
+    return "unknown";
+}
+
 void print_result(const std::string &name, unsigned iterations, const BenchResult &res)
 {
     const GroebnerStats &s = res.result.stats;
@@ -84,6 +101,7 @@ void print_result(const std::string &name, unsigned iterations, const BenchResul
               << " total_s=" << std::right << std::setw(10) << std::fixed << std::setprecision(6) << res.seconds
               << " avg_ms=" << std::setw(10) << std::fixed << std::setprecision(3) << (1000.0 * res.seconds / iterations)
               << " status=" << std::setw(20) << std::left << status_name(res.result.status)
+              << " alg=" << std::setw(12) << algorithm_name(res.result.selected_algorithm)
               << " order=" << std::setw(10) << order_name(res.result.order)
               << " basis=" << std::setw(4) << res.result.basis.size()
               << " spairs=" << std::setw(6) << s.s_pairs_processed
@@ -105,12 +123,14 @@ GroebnerResult compute_basis(const vec_basic &polys,
                              const vec_sym &vars,
                              MonomialOrder order,
                              GroebnerAlgorithm algorithm = GroebnerAlgorithm::Buchberger,
-                             uint64_t modulus = 0)
+                             uint64_t modulus = 0,
+                             bool verify = false)
 {
     GroebnerOptions opt;
     opt.order = order;
     opt.algorithm = algorithm;
     opt.modulus = modulus;
+    opt.verify_with_buchberger = verify;
     return groebner_basis(polys, vars, opt);
 }
 
@@ -212,6 +232,8 @@ int main(int argc, char *argv[])
         cases.push_back({"katsura3_drl_f5b", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex, GroebnerAlgorithm::F5B); }});
         cases.push_back({"katsura3_grlex_mogvw", [=]() { return compute_basis(polys, vars, MonomialOrder::GrLex, GroebnerAlgorithm::MoGVW); }});
         cases.push_back({"katsura3_gf31_m4gb", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex, GroebnerAlgorithm::M4GB, 31); }});
+        cases.push_back({"katsura3_gf31_auto", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex, GroebnerAlgorithm::Auto, 31); }});
+        cases.push_back({"katsura3_gf31_m4gb_verify", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex, GroebnerAlgorithm::M4GB, 31, true); }});
     }
 
     // Singular-derived toric/binomial case from 01-IMPL-PLAN-GROEBNER.md.

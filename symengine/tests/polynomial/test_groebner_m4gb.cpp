@@ -139,3 +139,51 @@ TEST_CASE("M4GB preconditions and cancellation interval edge case", "[groebner_m
     auto zero_interval_res = groebner_basis(polys, {x, y}, zero_interval);
     REQUIRE(zero_interval_res.status == GroebnerStatus::Success);
 }
+
+TEST_CASE("M4GB Codec Round-trips and Monomial Operations", "[groebner_m4gb]")
+{
+    unsigned num_vars = 3;
+    unsigned max_degree = 6;
+    RuntimeDegRevLexCodec codec(num_vars, max_degree);
+
+    std::vector<std::vector<unsigned>> test_monomials = {
+        {0, 0, 0},
+        {1, 0, 0},
+        {0, 2, 0},
+        {0, 0, 3},
+        {1, 1, 1},
+        {2, 0, 4},
+        {0, 5, 1}
+    };
+
+    for (const auto& mon : test_monomials) {
+        auto idx = codec.to_index(mon);
+        std::vector<unsigned> round_trip;
+        codec.from_index(idx, round_trip);
+        REQUIRE(mon == round_trip);
+    }
+
+    std::vector<unsigned> m1 = {1, 1, 0};
+    std::vector<unsigned> m2 = {0, 1, 2};
+    auto id1 = codec.to_index(m1);
+    auto id2 = codec.to_index(m2);
+
+    auto id_mul = codec.multiply(id1, id2);
+    std::vector<unsigned> res_mul;
+    codec.from_index(id_mul, res_mul);
+    REQUIRE(res_mul == std::vector<unsigned>{1, 2, 2});
+
+    REQUIRE(codec.divides(id1, id_mul));
+    REQUIRE(codec.divides(id2, id_mul));
+    REQUIRE(!codec.divides(id_mul, id1));
+
+    auto id_div = codec.divide(id_mul, id1);
+    std::vector<unsigned> res_div;
+    codec.from_index(id_div, res_div);
+    REQUIRE(res_div == m2);
+
+    auto id_lcm = codec.lcm(id1, id2);
+    std::vector<unsigned> res_lcm;
+    codec.from_index(id_lcm, res_lcm);
+    REQUIRE(res_lcm == std::vector<unsigned>{1, 1, 2});
+}

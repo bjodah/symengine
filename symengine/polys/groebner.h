@@ -30,7 +30,8 @@ enum class GroebnerStatus {
     Cancelled,
     ResourceLimitExceeded,
     NotZeroDimensional,
-    UnsupportedCoefficientDomain
+    UnsupportedCoefficientDomain,
+    VerificationFailed
 };
 
 class GroebnerCancellationToken {
@@ -105,6 +106,7 @@ struct GroebnerResult {
     MonomialOrder order;
     GroebnerStatus status;
     GroebnerStats stats;
+    GroebnerAlgorithm selected_algorithm = GroebnerAlgorithm::Auto;
 };
 
 struct TriangularUnivariateSolution {
@@ -134,17 +136,25 @@ GroebnerResult augmented_groebner_basis(const vec_basic &polys,
 RCP<const Basic> normal_form(const RCP<const Basic> &poly,
                              const vec_basic &G,
                              const vec_sym &variables,
+                             const GroebnerOptions &options);
+
+RCP<const Basic> normal_form(const RCP<const Basic> &poly,
+                             const vec_basic &G,
+                             const vec_sym &variables,
                              MonomialOrder order = MonomialOrder::DegRevLex);
 
-// Returns true if G is a Groebner basis under the given order: every
-// S-polynomial of pairs of G reduces to zero modulo G.
+bool is_groebner(const vec_basic &G,
+                 const vec_sym &variables,
+                 const GroebnerOptions &options);
+
 bool is_groebner(const vec_basic &G,
                  const vec_sym &variables,
                  MonomialOrder order = MonomialOrder::DegRevLex);
 
-// Returns true if G is a reduced Groebner basis: it is a Groebner basis, every
-// element is monic, and no term of any element is divisible by the leading
-// monomial of any other element.
+bool is_reduced_basis(const vec_basic &G,
+                      const vec_sym &variables,
+                      const GroebnerOptions &options);
+
 bool is_reduced_basis(const vec_basic &G,
                       const vec_sym &variables,
                       MonomialOrder order = MonomialOrder::DegRevLex);

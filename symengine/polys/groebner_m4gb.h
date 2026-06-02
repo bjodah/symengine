@@ -7,9 +7,7 @@
 #include <unordered_set>
 #include <map>
 #include <algorithm>
-#include <iostream>
 #include <stdexcept>
-#include <cassert>
 
 namespace SymEngine {
 
@@ -91,10 +89,11 @@ inline void reduce_sparse(std::map<OrdinalMonomialId, uint64_t>& poly, PolyMatri
         uint64_t coeff = 0;
         for (auto it = poly.rbegin(); it != poly.rend(); ++it) {
             OrdinalMonomialId m = it->first;
-            for (const auto& pair : pm.basis) {
-                if (pm.codec.divides(pair.first, m)) {
+            auto ub = pm.basis.upper_bound(m);
+            for (auto bit = pm.basis.begin(); bit != ub; ++bit) {
+                if (pm.codec.divides(bit->first, m)) {
                     m_to_reduce = m;
-                    divisor_lm = pair.first;
+                    divisor_lm = bit->first;
                     coeff = it->second;
                     reduced = true;
                     break;
@@ -125,13 +124,15 @@ inline void reduce_sparse(std::map<OrdinalMonomialId, uint64_t>& poly, PolyMatri
 
 
 inline DensePoly to_dense(const std::map<OrdinalMonomialId, uint64_t>& sparse, const std::unordered_map<OrdinalMonomialId, size_t>& new_dense_invindex) {
-    DensePoly res;
+    DensePoly res(new_dense_invindex.size(), 0);
     for (const auto& term : sparse) {
         auto it = new_dense_invindex.find(term.first);
         if (it != new_dense_invindex.end()) {
-            if (it->second >= res.size()) res.resize(it->second + 1, 0);
             res[it->second] = term.second;
         }
+    }
+    while (!res.empty() && res.back() == 0) {
+        res.pop_back();
     }
     return res;
 }
@@ -177,8 +178,9 @@ inline DensePoly get_u_g(OrdinalMonomialId u, const DensePoly& g_tail, PolyMatri
 inline void shrink(PolyMatrix& pm) {
     std::vector<OrdinalMonomialId> reducible_ids;
     for (auto id : pm.dense_index) {
-        for (const auto& pair : pm.basis) {
-            if (pm.codec.divides(pair.first, id)) {
+        auto ub = pm.basis.upper_bound(id);
+        for (auto bit = pm.basis.begin(); bit != ub; ++bit) {
+            if (pm.codec.divides(bit->first, id)) {
                 reducible_ids.push_back(id);
                 break;
             }
@@ -189,11 +191,15 @@ inline void shrink(PolyMatrix& pm) {
     for (auto id : reducible_ids) {
         if (pm.matrix.find(id) != pm.matrix.end()) continue;
         OrdinalMonomialId divisor_lm = 0;
-        for (const auto& pair : pm.basis) {
-            if (pm.codec.divides(pair.first, id)) {
-                divisor_lm = pair.first;
+        auto ub = pm.basis.upper_bound(id);
+        for (auto bit = pm.basis.begin(); bit != ub; ++bit) {
+            if (pm.codec.divides(bit->first, id)) {
+                divisor_lm = bit->first;
                 break;
             }
+        }
+        if (pm.options.max_matrix_rows > 0 && pm.matrix.size() >= pm.options.max_matrix_rows) {
+            throw GroebnerLimitExceeded{};
         }
         PolyMatrixEntry entry;
         entry.basis_lm = divisor_lm;
@@ -207,8 +213,9 @@ inline void shrink(PolyMatrix& pm) {
     std::vector<OrdinalMonomialId> new_dense_index;
     for (auto id : pm.dense_index) {
         bool reducible = false;
-        for (const auto& pair : pm.basis) {
-            if (pm.codec.divides(pair.first, id)) {
+        auto ub = pm.basis.upper_bound(id);
+        for (auto bit = pm.basis.begin(); bit != ub; ++bit) {
+            if (pm.codec.divides(bit->first, id)) {
                 reducible = true;
                 break;
             }
@@ -237,14 +244,18 @@ inline void increase_upper_bound(OrdinalMonomialId m, PolyMatrix& pm) {
     for (OrdinalMonomialId id = pm.upper_bound; id <= m; ++id) {
         bool divisible = false;
         OrdinalMonomialId divisor_lm = 0;
-        for (const auto& pair : pm.basis) {
-            if (pm.codec.divides(pair.first, id)) {
+        auto ub = pm.basis.upper_bound(id);
+        for (auto bit = pm.basis.begin(); bit != ub; ++bit) {
+            if (pm.codec.divides(bit->first, id)) {
                 divisible = true;
-                divisor_lm = pair.first;
+                divisor_lm = bit->first;
                 break;
             }
         }
         if (divisible) {
+            if (pm.options.max_matrix_rows > 0 && pm.matrix.size() >= pm.options.max_matrix_rows) {
+                throw GroebnerLimitExceeded{};
+            }
             PolyMatrixEntry entry;
             entry.basis_lm = divisor_lm;
             entry.generation = pm.generation;
@@ -254,6 +265,9 @@ inline void increase_upper_bound(OrdinalMonomialId m, PolyMatrix& pm) {
             pm.matrix[id] = entry;
         } else {
             size_t new_idx = pm.dense_index.size();
+            if (pm.options.max_matrix_columns > 0 && new_idx >= pm.options.max_matrix_columns) {
+                throw GroebnerLimitExceeded{};
+            }
             pm.dense_index.push_back(id);
             pm.dense_invindex[id] = new_idx;
         }
@@ -262,6 +276,9 @@ inline void increase_upper_bound(OrdinalMonomialId m, PolyMatrix& pm) {
 }
 
 inline void insert_basis_polynomial(OrdinalMonomialId lm, const DensePoly& tail, PolyMatrix& pm) {
+    if (pm.options.max_matrix_rows > 0 && pm.matrix.size() >= pm.options.max_matrix_rows) {
+        throw GroebnerLimitExceeded{};
+    }
     PolyMatrixEntry entry;
     entry.basis_lm = lm;
     entry.generation = pm.generation;
@@ -312,6 +329,10 @@ inline void selection(M4GBContext& ctx) {
         }
     }
 
+    if (ctx.options.max_matrix_rows > 0 && batch.size() > ctx.options.max_matrix_rows) {
+        throw GroebnerLimitExceeded{};
+    }
+
     OrdinalMonomialId max_lcm = 0;
     for (const auto& cp : batch) {
         if (cp.lcm > max_lcm) max_lcm = cp.lcm;
@@ -345,6 +366,18 @@ inline void selection(M4GBContext& ctx) {
         }
         if (!row.columns.empty()) {
             submatrix.push_back(std::move(row));
+        }
+    }
+
+    if (ctx.options.max_matrix_columns > 0) {
+        std::unordered_set<uint64_t> cols;
+        for (const auto& row : submatrix) {
+            for (auto col : row.columns) {
+                cols.insert(col);
+            }
+        }
+        if (cols.size() > ctx.options.max_matrix_columns) {
+            throw GroebnerLimitExceeded{};
         }
     }
 
@@ -488,10 +521,22 @@ inline void initialize_from_input(M4GBContext& ctx, const std::vector<GPoly<uint
         if (d > max_deg) max_deg = d;
     }
     unsigned max_codec_deg = max_deg + 30;
+    if (ctx.options.max_degree > 0) {
+        max_codec_deg = ctx.options.max_degree;
+        if (max_deg > max_codec_deg) {
+            throw GroebnerLimitExceeded{};
+        }
+    }
     
     size_t num_vars = F.empty() ? 0 : F[0].leading_monomial().size();
-    ctx.pm.codec = RuntimeDegRevLexCodec(static_cast<unsigned>(num_vars),
-                                         max_codec_deg);
+    try {
+        ctx.pm.codec = RuntimeDegRevLexCodec(static_cast<unsigned>(num_vars),
+                                             max_codec_deg);
+    } catch (const GroebnerUnsupportedDomain &) {
+        throw;
+    } catch (const std::overflow_error &) {
+        throw GroebnerUnsupportedDomain{};
+    }
 
     for (const auto& f : F) {
         if (f.is_zero()) continue;

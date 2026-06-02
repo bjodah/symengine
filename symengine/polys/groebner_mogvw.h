@@ -104,6 +104,7 @@ LabeledMonomial<Coeff, Domain> top_reduce(LabeledMonomial<Coeff, Domain> brm, Mo
     SignatureLess less{p.order};
     bool reduced = true;
     while (reduced && !p.is_zero()) {
+        check_cancellation(ctx.options);
         reduced = false;
         PackedMonomial lm_p = pack_monomial(p.leading_monomial());
         
@@ -118,12 +119,17 @@ LabeledMonomial<Coeff, Domain> top_reduce(LabeledMonomial<Coeff, Domain> brm, Mo
                 Signature th_sig = signature_mul(g.signature, t);
                 
                 if (less(th_sig, brm.signature)) {
+                    if (ctx.options.max_reduction_steps > 0
+                        && ctx.stats.f5_reductions >= ctx.options.max_reduction_steps) {
+                        throw GroebnerLimitExceeded{};
+                    }
                     Coeff q_coeff = dom.div(p.leading_coeff(), g_poly.leading_coeff());
                     GPoly<Coeff, Domain> term_g = g_poly;
                     term_g.mul_monomial(t.exponents);
                     term_g.scale(q_coeff);
                     p.sub_poly(term_g);
                     reduced = true;
+                    ++ctx.stats.f5_reductions;
                     break;
                 }
             }
@@ -159,6 +165,7 @@ void mutual_reduce(LabeledMonomial<Coeff, Domain> brm, MoGVWContext<Coeff, Domai
     LabeledMonomial<Coeff, Domain> brm_pp = top_reduce(brm, ctx);
 
     if (!brm_pp.is_syzygy) {
+        enforce_max_degree(brm_pp.m.total_degree, ctx.options);
         auto it = ctx.best_by_monomial.find(brm_pp.m);
         if (it != ctx.best_by_monomial.end()) {
             LabeledMonomial<Coeff, Domain>& existing = ctx.G[it->second];
@@ -226,6 +233,11 @@ template <typename Coeff, typename Domain>
 std::vector<GPoly<Coeff, Domain>> groebner_basis_mogvw_impl(std::vector<GPoly<Coeff, Domain>> F,
                                                              const GroebnerOptions& options,
                                                              GroebnerStats& stats) {
+    for (const auto &f : F) {
+        if (!f.is_zero()) {
+            enforce_max_degree(degree(f.leading_monomial()), options);
+        }
+    }
     unsigned reduction_steps = 0;
     F = interreduce(F, options, reduction_steps);
 
@@ -264,6 +276,11 @@ std::vector<GPoly<Coeff, Domain>> groebner_basis_mogvw_impl(std::vector<GPoly<Co
                 lifted.labeled_poly_id = lp_lifted.id;
                 lifted.is_syzygy = false;
                 lifted.lifted = false;
+
+                if (options.max_s_pairs > 0 && ctx.stats.labeled_monomials_lifted >= options.max_s_pairs) {
+                    throw GroebnerLimitExceeded{};
+                }
+                enforce_max_degree(lifted.m.total_degree, options);
 
                 mutual_reduce(lifted, ctx);
                 ++ctx.stats.labeled_monomials_lifted;

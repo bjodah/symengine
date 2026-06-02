@@ -182,6 +182,11 @@ std::vector<GPoly<Coeff, Domain>> f5b_impl(std::vector<GPoly<Coeff, Domain>> F,
                                            const GroebnerOptions& options,
                                            GroebnerStats& stats)
 {
+    for (const auto &f : F) {
+        if (!f.is_zero()) {
+            enforce_max_degree(degree(f.leading_monomial()), options);
+        }
+    }
     unsigned reduction_steps = 0;
     F = interreduce(F, options, reduction_steps);
 
@@ -213,6 +218,11 @@ std::vector<GPoly<Coeff, Domain>> f5b_impl(std::vector<GPoly<Coeff, Domain>> F,
         check_cancellation(options);
         CriticalPair<Coeff, Domain> cp = std::move(CP.back());
         CP.pop_back();
+
+        PackedMonomial lm_f = pack_monomial(cp.f->polynomial.leading_monomial());
+        PackedMonomial L = packed_multiply(lm_f, cp.um);
+        enforce_max_degree(L.total_degree, options);
+
         if (options.max_s_pairs > 0
             && stats.s_pairs_processed >= options.max_s_pairs) {
             throw GroebnerLimitExceeded{};
@@ -224,6 +234,9 @@ std::vector<GPoly<Coeff, Domain>> f5b_impl(std::vector<GPoly<Coeff, Domain>> F,
 
         LabeledPoly<Coeff, Domain> s = s_polynomial(cp);
         LabeledPoly<Coeff, Domain> p = f5_reduce(std::move(s), B, options, stats);
+        if (!p.polynomial.is_zero()) {
+            enforce_max_degree(degree(p.polynomial.leading_monomial()), options);
+        }
         p.polynomial.make_monic();
         p.number = ++k;
 

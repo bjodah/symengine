@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <functional>
+#include <chrono>
 
 namespace SymEngine {
 
@@ -26,9 +27,24 @@ struct GroebnerLimitExceeded {};
 struct GroebnerNotZeroDimensional {};
 struct GroebnerUnsupportedDomain {};
 
+extern thread_local std::chrono::steady_clock::time_point active_groebner_start;
+
 inline void check_cancellation(const GroebnerOptions &options) {
     if (options.cancellation_token && options.cancellation_token->is_cancelled()) {
         throw GroebnerCancelled{};
+    }
+    if (options.max_milliseconds > 0) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(now - active_groebner_start).count();
+        if (elapsed_us >= static_cast<int64_t>(options.max_milliseconds) * 1000) {
+            throw GroebnerLimitExceeded{};
+        }
+    }
+}
+
+inline void enforce_max_degree(unsigned degree, const GroebnerOptions &options) {
+    if (options.max_degree > 0 && degree > options.max_degree) {
+        throw GroebnerLimitExceeded{};
     }
 }
 
@@ -431,35 +447,11 @@ public:
         canonicalize();
     }
 };
+} // namespace SymEngine
 
-struct Signature {
-    PackedMonomial monomial;
-    unsigned generator_index = 0;   // 1-indexed: 1 .. input_polys
+#include <symengine/polys/groebner_signature.h>
 
-    bool operator==(const Signature& other) const {
-        return generator_index == other.generator_index && monomial == other.monomial;
-    }
-};
-
-struct SignatureLess {
-    MonomialOrder order;
-    explicit SignatureLess(MonomialOrder ord = MonomialOrder::DegRevLex) : order(ord) {}
-
-    bool operator()(const Signature& a, const Signature& b) const {
-        if (a.generator_index != b.generator_index) {
-            return a.generator_index > b.generator_index;
-        }
-        return PackedMonomialLess{order}(a.monomial, b.monomial);
-    }
-};
-
-inline Signature signature_mul(const Signature& s, const PackedMonomial& m) {
-    Signature res;
-    res.generator_index = s.generator_index;
-    res.monomial = packed_multiply(s.monomial, m);
-    return res;
-}
-
+namespace SymEngine {
 template <typename Coeff>
 struct MatrixRow {
     std::vector<uint64_t> columns;  // monomial ids
@@ -600,6 +592,17 @@ public:
     }
 };
 
+struct CodecWorkspace {
+    std::vector<exponent_t> exps_a;
+    std::vector<exponent_t> exps_b;
+    std::vector<exponent_t> res;
+};
+
+inline CodecWorkspace& get_codec_workspace() {
+    thread_local CodecWorkspace ws;
+    return ws;
+}
+
 using OrdinalMonomialId = uint64_t;
 
 class RuntimeDegRevLexCodec {
@@ -623,7 +626,7 @@ class RuntimeDegRevLexCodec {
             for (size_t j = 1; j < i; ++j) {
                 uint64_t val = table[i - 1][j - 1] + table[i - 1][j];
                 if (val < table[i - 1][j - 1]) {
-                    throw std::overflow_error("binomial coefficient overflow");
+                    throw GroebnerUnsupportedDomain{};
                 }
                 table[i][j] = val;
             }
@@ -678,7 +681,7 @@ public:
         for (unsigned i = 2; i <= D + 1; ++i) {
             L_[i] = L_[i - 1] + multisetcoef[N][i - 1];
             if (L_[i] < L_[i - 1]) {
-                throw std::overflow_error("L index overflow");
+                throw GroebnerUnsupportedDomain{};
             }
         }
         max_value_ = L_[D + 1] - 1;
@@ -730,7 +733,7 @@ public:
             d += e;
         }
         if (d > max_degree_) {
-            throw std::runtime_error("degree > D!");
+            throw GroebnerLimitExceeded{};
         }
 
         OrdinalMonomialId v = L_[d];
@@ -762,46 +765,46 @@ public:
     }
 
     OrdinalMonomialId multiply(OrdinalMonomialId a, OrdinalMonomialId b) const {
-        std::vector<exponent_t> exps_a, exps_b;
-        from_index(a, exps_a);
-        from_index(b, exps_b);
-        std::vector<exponent_t> res(num_vars_);
+        auto& ws = get_codec_workspace();
+        from_index(a, ws.exps_a);
+        from_index(b, ws.exps_b);
+        ws.res.resize(num_vars_);
         for (size_t i = 0; i < num_vars_; ++i) {
-            res[i] = exps_a[i] + exps_b[i];
+            ws.res[i] = ws.exps_a[i] + ws.exps_b[i];
         }
-        return to_index(res);
+        return to_index(ws.res);
     }
 
     bool divides(OrdinalMonomialId a, OrdinalMonomialId b) const {
-        std::vector<exponent_t> exps_a, exps_b;
-        from_index(a, exps_a);
-        from_index(b, exps_b);
+        auto& ws = get_codec_workspace();
+        from_index(a, ws.exps_a);
+        from_index(b, ws.exps_b);
         for (size_t i = 0; i < num_vars_; ++i) {
-            if (exps_a[i] > exps_b[i]) return false;
+            if (ws.exps_a[i] > ws.exps_b[i]) return false;
         }
         return true;
     }
 
     OrdinalMonomialId divide(OrdinalMonomialId a, OrdinalMonomialId b) const {
-        std::vector<exponent_t> exps_a, exps_b;
-        from_index(a, exps_a);
-        from_index(b, exps_b);
-        std::vector<exponent_t> res(num_vars_);
+        auto& ws = get_codec_workspace();
+        from_index(a, ws.exps_a);
+        from_index(b, ws.exps_b);
+        ws.res.resize(num_vars_);
         for (size_t i = 0; i < num_vars_; ++i) {
-            res[i] = exps_a[i] - exps_b[i];
+            ws.res[i] = ws.exps_a[i] - ws.exps_b[i];
         }
-        return to_index(res);
+        return to_index(ws.res);
     }
 
     OrdinalMonomialId lcm(OrdinalMonomialId a, OrdinalMonomialId b) const {
-        std::vector<exponent_t> exps_a, exps_b;
-        from_index(a, exps_a);
-        from_index(b, exps_b);
-        std::vector<exponent_t> res(num_vars_);
+        auto& ws = get_codec_workspace();
+        from_index(a, ws.exps_a);
+        from_index(b, ws.exps_b);
+        ws.res.resize(num_vars_);
         for (size_t i = 0; i < num_vars_; ++i) {
-            res[i] = std::max(exps_a[i], exps_b[i]);
+            ws.res[i] = std::max(ws.exps_a[i], ws.exps_b[i]);
         }
-        return to_index(res);
+        return to_index(ws.res);
     }
 };
 

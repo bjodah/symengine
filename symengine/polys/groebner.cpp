@@ -203,6 +203,11 @@ RCP<const Basic> gpoly_to_basic(const GPoly<Coeff, Domain> &gpoly, const vec_sym
 
 template <typename Coeff, typename Domain>
 std::vector<GPoly<Coeff, Domain>> buchberger(std::vector<GPoly<Coeff, Domain>> F, const GroebnerOptions &options, GroebnerStats &stats) {
+    for (const auto &f : F) {
+        if (!f.is_zero()) {
+            enforce_max_degree(degree(f.leading_monomial()), options);
+        }
+    }
     unsigned s_pairs_processed = 0;
     unsigned reductions_to_zero = 0;
     unsigned max_basis_size = 0;
@@ -314,76 +319,155 @@ std::vector<GPoly<Coeff, Domain>> buchberger(std::vector<GPoly<Coeff, Domain>> F
     return G;
 }
 
+thread_local std::chrono::steady_clock::time_point active_groebner_start;
+
+inline uint64_t power(uint64_t base, uint64_t exp, uint64_t mod) {
+    uint64_t res = 1;
+    base = base % mod;
+    while (exp > 0) {
+        if (exp % 2 == 1) res = (static_cast<__uint128_t>(res) * base) % mod;
+        base = (static_cast<__uint128_t>(base) * base) % mod;
+        exp /= 2;
+    }
+    return res;
+}
+
+inline bool miller_rabin_test(uint64_t n, uint64_t a) {
+    if (n <= a) return true;
+    uint64_t d = n - 1;
+    int s = 0;
+    while (d % 2 == 0) {
+        d /= 2;
+        s++;
+    }
+    uint64_t x = power(a, d, n);
+    if (x == 1 || x == n - 1) return true;
+    for (int r = 1; r < s; r++) {
+        x = (static_cast<__uint128_t>(x) * x) % n;
+        if (x == n - 1) return true;
+    }
+    return false;
+}
+
+inline bool is_supported_prime_modulus(uint64_t p) {
+    if (p < 2 || p >= (1ULL << 31)) return false;
+    if (p == 2 || p == 7 || p == 61) return true;
+    if (p % 2 == 0) return false;
+    return miller_rabin_test(p, 2) && miller_rabin_test(p, 7) && miller_rabin_test(p, 61);
+}
+
 GroebnerAlgorithm resolve_algorithm(const vec_basic &polys,
                                     const vec_sym &variables,
                                     const GroebnerOptions &options) {
     if (options.algorithm != GroebnerAlgorithm::Auto) {
         return options.algorithm;
     }
-    return GroebnerAlgorithm::Buchberger;
+    
+    bool symbolic = has_symbolic_parameters(polys, variables);
+    if (symbolic) {
+        return GroebnerAlgorithm::Buchberger;
+    }
+    
+    size_t num_vars = variables.size();
+    size_t num_polys = polys.size();
+    unsigned max_deg = 0;
+    
+    for (const auto &poly : polys) {
+        RCP<const Basic> expanded = expand(poly);
+        if (is_a<Add>(*expanded)) {
+            const Add &add_expr = down_cast<const Add &>(*expanded);
+            for (const auto &it : add_expr.get_dict()) {
+                Monomial mon;
+                RCP<const Basic> coeff_expr;
+                parse_term(it.first, variables, mon, coeff_expr);
+                unsigned d = 0;
+                for (auto e : mon) d += e;
+                if (d > max_deg) max_deg = d;
+            }
+        } else {
+            Monomial mon;
+            RCP<const Basic> coeff_expr;
+            parse_term(expanded, variables, mon, coeff_expr);
+            unsigned d = 0;
+            for (auto e : mon) d += e;
+            if (d > max_deg) max_deg = d;
+        }
+    }
+    
+    if (options.modulus > 0) {
+        if (options.order == MonomialOrder::DegRevLex && num_vars <= 8 && max_deg <= 30) {
+            return GroebnerAlgorithm::M4GB;
+        }
+        if (options.order == MonomialOrder::GrLex) {
+            return GroebnerAlgorithm::MoGVW;
+        }
+        return GroebnerAlgorithm::Buchberger;
+    } else {
+        if (options.order == MonomialOrder::DegRevLex || options.order == MonomialOrder::GrLex) {
+            if (num_polys >= 3) {
+                return GroebnerAlgorithm::F5B;
+            }
+        }
+        return GroebnerAlgorithm::Buchberger;
+    }
 }
 
 GroebnerResult groebner_basis(const vec_basic &polys,
                               const vec_sym &variables,
                               const GroebnerOptions &options) {
+    active_groebner_start = std::chrono::steady_clock::now();
     GroebnerResult result;
     result.variables = variables;
     result.order = options.order;
     
     if (polys.empty()) {
         result.status = GroebnerStatus::Success;
+        result.selected_algorithm = GroebnerAlgorithm::Auto;
         return result;
     }
     
     GroebnerAlgorithm alg = resolve_algorithm(polys, variables, options);
+    
+    bool symbolic = has_symbolic_parameters(polys, variables);
+    bool is_supported = true;
+    
+    if (alg == GroebnerAlgorithm::M4GB) {
+        if (symbolic || options.modulus == 0 || options.order != MonomialOrder::DegRevLex) {
+            is_supported = false;
+        }
+    } else if (alg == GroebnerAlgorithm::MoGVW) {
+        if (symbolic || (options.order != MonomialOrder::DegRevLex && options.order != MonomialOrder::GrLex)) {
+            is_supported = false;
+        }
+    }
+    
+    if (!is_supported) {
+        if (options.algorithm == GroebnerAlgorithm::Auto) {
+            alg = GroebnerAlgorithm::Buchberger;
+        } else {
+            result.status = GroebnerStatus::UnsupportedCoefficientDomain;
+            result.selected_algorithm = alg;
+            return result;
+        }
+    }
+    
+    result.selected_algorithm = alg;
+    
     if (alg != GroebnerAlgorithm::Buchberger && alg != GroebnerAlgorithm::F5B && 
         alg != GroebnerAlgorithm::MoGVW && alg != GroebnerAlgorithm::M4GB) {
         result.status = GroebnerStatus::UnsupportedCoefficientDomain;
         return result;
     }
     
-    bool symbolic = has_symbolic_parameters(polys, variables);
     if (options.modulus > 0 && symbolic) {
         result.status = GroebnerStatus::UnsupportedCoefficientDomain;
         return result;
-    }
-    if (alg == GroebnerAlgorithm::MoGVW) {
-        if (symbolic) {
-            result.status = GroebnerStatus::UnsupportedCoefficientDomain;
-            return result;
-        }
-        if (options.order != MonomialOrder::DegRevLex && options.order != MonomialOrder::GrLex) {
-            result.status = GroebnerStatus::UnsupportedCoefficientDomain;
-            return result;
-        }
-    }
-    
-    if (alg == GroebnerAlgorithm::M4GB) {
-        if (symbolic || options.modulus == 0) {
-            result.status = GroebnerStatus::UnsupportedCoefficientDomain;
-            return result;
-        }
-        if (options.order != MonomialOrder::DegRevLex) {
-            result.status = GroebnerStatus::UnsupportedCoefficientDomain;
-            return result;
-        }
     }
     
     try {
         if (options.modulus > 0) {
             uint64_t p = options.modulus;
-            if (p < 2 || p >= (1ULL << 31)) {
-                result.status = GroebnerStatus::UnsupportedCoefficientDomain;
-                return result;
-            }
-            auto is_prime = [](uint64_t n) {
-                if (n < 2) return false;
-                for (uint64_t i = 2; i <= n / i; ++i) {
-                    if (n % i == 0) return false;
-                }
-                return true;
-            };
-            if (!is_prime(p)) {
+            if (!is_supported_prime_modulus(p)) {
                 result.status = GroebnerStatus::UnsupportedCoefficientDomain;
                 return result;
             }
@@ -473,11 +557,45 @@ GroebnerResult groebner_basis(const vec_basic &polys,
     } catch (const GroebnerUnsupportedDomain &) {
         result.status = GroebnerStatus::UnsupportedCoefficientDomain;
     }
+    
     if (result.status == GroebnerStatus::Success) {
         result.stats.input_polys = static_cast<unsigned>(polys.size());
         result.stats.output_polys = static_cast<unsigned>(result.basis.size());
         result.stats.max_basis_size = std::max(
             result.stats.max_basis_size, result.stats.output_polys);
+            
+        // verify_with_buchberger check
+        if (options.verify_with_buchberger && alg != GroebnerAlgorithm::Buchberger) {
+            GroebnerOptions verify_opts = options;
+            verify_opts.verify_with_buchberger = false;
+            verify_opts.algorithm = GroebnerAlgorithm::Buchberger;
+            
+            GroebnerResult ref_result = groebner_basis(polys, variables, verify_opts);
+            if (ref_result.status != result.status) {
+                result.status = GroebnerStatus::VerificationFailed;
+            } else if (result.status == GroebnerStatus::Success) {
+                auto basis_copy = result.basis;
+                auto ref_basis_copy = ref_result.basis;
+                auto cmp_polys = [](const RCP<const Basic> &a, const RCP<const Basic> &b) {
+                    return a->__str__() < b->__str__();
+                };
+                std::sort(basis_copy.begin(), basis_copy.end(), cmp_polys);
+                std::sort(ref_basis_copy.begin(), ref_basis_copy.end(), cmp_polys);
+                
+                bool match = (basis_copy.size() == ref_basis_copy.size());
+                if (match) {
+                    for (size_t i = 0; i < basis_copy.size(); ++i) {
+                        if (basis_copy[i]->__str__() != ref_basis_copy[i]->__str__()) {
+                            match = false;
+                            break;
+                        }
+                    }
+                }
+                if (!match) {
+                    result.status = GroebnerStatus::VerificationFailed;
+                }
+            }
+        }
     }
     return result;
 }
@@ -488,15 +606,14 @@ template <typename Coeff, typename Domain>
 static RCP<const Basic> normal_form_dispatch(const RCP<const Basic> &poly,
                                              const vec_basic &G,
                                              const vec_sym &variables,
-                                             MonomialOrder order) {
-    GPoly<Coeff, Domain> p = basic_to_gpoly<Coeff, Domain>(poly, variables, order);
+                                             const GroebnerOptions &options,
+                                             const Domain &dom = Domain()) {
+    GPoly<Coeff, Domain> p = basic_to_gpoly<Coeff, Domain>(poly, variables, options.order, dom);
     std::vector<GPoly<Coeff, Domain>> Ginternal;
     for (const auto &g : G) {
-        auto gp = basic_to_gpoly<Coeff, Domain>(g, variables, order);
+        auto gp = basic_to_gpoly<Coeff, Domain>(g, variables, options.order, dom);
         if (!gp.is_zero()) Ginternal.push_back(gp);
     }
-    GroebnerOptions options;
-    options.order = order;
     unsigned reduction_steps = 0;
     GPoly<Coeff, Domain> r = normal_form_impl(p, Ginternal, options, reduction_steps);
     return gpoly_to_basic<Coeff, Domain>(r, variables);
@@ -505,27 +622,39 @@ static RCP<const Basic> normal_form_dispatch(const RCP<const Basic> &poly,
 RCP<const Basic> normal_form(const RCP<const Basic> &poly,
                              const vec_basic &G,
                              const vec_sym &variables,
-                             MonomialOrder order) {
+                             const GroebnerOptions &options) {
+    if (options.modulus > 0) {
+        GFpCoeffDomain dom(options.modulus);
+        return normal_form_dispatch<uint64_t, GFpCoeffDomain>(poly, G, variables, options, dom);
+    }
     vec_basic all = G;
     all.push_back(poly);
     bool symbolic = has_symbolic_parameters(all, variables);
     if (symbolic) {
-        return normal_form_dispatch<Expression, ExpressionCoeffDomain>(poly, G, variables, order);
+        return normal_form_dispatch<Expression, ExpressionCoeffDomain>(poly, G, variables, options, ExpressionCoeffDomain());
     }
-    return normal_form_dispatch<rational_class, RationalCoeffDomain>(poly, G, variables, order);
+    return normal_form_dispatch<rational_class, RationalCoeffDomain>(poly, G, variables, options, RationalCoeffDomain());
+}
+
+RCP<const Basic> normal_form(const RCP<const Basic> &poly,
+                             const vec_basic &G,
+                             const vec_sym &variables,
+                             MonomialOrder order) {
+    GroebnerOptions options;
+    options.order = order;
+    return normal_form(poly, G, variables, options);
 }
 
 template <typename Coeff, typename Domain>
 static bool is_groebner_dispatch(const vec_basic &G,
                                  const vec_sym &variables,
-                                 MonomialOrder order) {
+                                 const GroebnerOptions &options,
+                                 const Domain &dom = Domain()) {
     std::vector<GPoly<Coeff, Domain>> Ginternal;
     for (const auto &g : G) {
-        auto gp = basic_to_gpoly<Coeff, Domain>(g, variables, order);
+        auto gp = basic_to_gpoly<Coeff, Domain>(g, variables, options.order, dom);
         if (!gp.is_zero()) Ginternal.push_back(gp);
     }
-    GroebnerOptions options;
-    options.order = order;
     unsigned reduction_steps = 0;
     for (size_t i = 0; i < Ginternal.size(); ++i) {
         for (size_t j = i + 1; j < Ginternal.size(); ++j) {
@@ -557,23 +686,35 @@ static bool is_groebner_dispatch(const vec_basic &G,
 
 bool is_groebner(const vec_basic &G,
                  const vec_sym &variables,
-                 MonomialOrder order) {
+                 const GroebnerOptions &options) {
     if (G.empty()) return true;
+    if (options.modulus > 0) {
+        GFpCoeffDomain dom(options.modulus);
+        return is_groebner_dispatch<uint64_t, GFpCoeffDomain>(G, variables, options, dom);
+    }
     bool symbolic = has_symbolic_parameters(G, variables);
     if (symbolic) {
-        return is_groebner_dispatch<Expression, ExpressionCoeffDomain>(G, variables, order);
+        return is_groebner_dispatch<Expression, ExpressionCoeffDomain>(G, variables, options, ExpressionCoeffDomain());
     }
-    return is_groebner_dispatch<rational_class, RationalCoeffDomain>(G, variables, order);
+    return is_groebner_dispatch<rational_class, RationalCoeffDomain>(G, variables, options, RationalCoeffDomain());
+}
+
+bool is_groebner(const vec_basic &G,
+                 const vec_sym &variables,
+                 MonomialOrder order) {
+    GroebnerOptions options;
+    options.order = order;
+    return is_groebner(G, variables, options);
 }
 
 template <typename Coeff, typename Domain>
 static bool is_reduced_basis_dispatch(const vec_basic &G,
                                       const vec_sym &variables,
-                                      MonomialOrder order) {
-    Domain dom;
+                                      const GroebnerOptions &options,
+                                      const Domain &dom = Domain()) {
     std::vector<GPoly<Coeff, Domain>> Ginternal;
     for (const auto &g : G) {
-        auto gp = basic_to_gpoly<Coeff, Domain>(g, variables, order);
+        auto gp = basic_to_gpoly<Coeff, Domain>(g, variables, options.order, dom);
         if (gp.is_zero()) return false; // zeros do not belong to a reduced basis
         Ginternal.push_back(gp);
     }
@@ -591,18 +732,30 @@ static bool is_reduced_basis_dispatch(const vec_basic &G,
             }
         }
     }
-    return is_groebner_dispatch<Coeff, Domain>(G, variables, order);
+    return is_groebner_dispatch<Coeff, Domain>(G, variables, options, dom);
+}
+
+bool is_reduced_basis(const vec_basic &G,
+                      const vec_sym &variables,
+                      const GroebnerOptions &options) {
+    if (G.empty()) return true;
+    if (options.modulus > 0) {
+        GFpCoeffDomain dom(options.modulus);
+        return is_reduced_basis_dispatch<uint64_t, GFpCoeffDomain>(G, variables, options, dom);
+    }
+    bool symbolic = has_symbolic_parameters(G, variables);
+    if (symbolic) {
+        return is_reduced_basis_dispatch<Expression, ExpressionCoeffDomain>(G, variables, options, ExpressionCoeffDomain());
+    }
+    return is_reduced_basis_dispatch<rational_class, RationalCoeffDomain>(G, variables, options, RationalCoeffDomain());
 }
 
 bool is_reduced_basis(const vec_basic &G,
                       const vec_sym &variables,
                       MonomialOrder order) {
-    if (G.empty()) return true;
-    bool symbolic = has_symbolic_parameters(G, variables);
-    if (symbolic) {
-        return is_reduced_basis_dispatch<Expression, ExpressionCoeffDomain>(G, variables, order);
-    }
-    return is_reduced_basis_dispatch<rational_class, RationalCoeffDomain>(G, variables, order);
+    GroebnerOptions options;
+    options.order = order;
+    return is_reduced_basis(G, variables, options);
 }
 
 bool is_zero_dimensional(const std::vector<Monomial> &leading_monomials, size_t n) {

@@ -628,3 +628,143 @@ TEST_CASE("Stats — input_polys, output_polys, reductions_to_zero are populated
     REQUIRE(r.stats.output_polys == r.basis.size());
     REQUIRE(r.stats.max_basis_size >= r.stats.output_polys);
 }
+
+TEST_CASE("Modular Public Predicates", "[groebner]")
+{
+    auto x = symbol("x");
+    auto y = symbol("y");
+    
+    // G = {x + 5*y, y + 5*x} is reduced over GF(5) (becomes {x, y})
+    vec_basic G = {add(x, mul(integer(5), y)), add(y, mul(integer(5), x))};
+    vec_sym vars = {x, y};
+    
+    GroebnerOptions opt;
+    opt.modulus = 5;
+    
+    REQUIRE(is_groebner(G, vars, opt));
+    REQUIRE(is_reduced_basis(G, vars, opt));
+    
+    // But it's NOT reduced or groebner without the GF(5) modulus (over QQ/Expression)
+    REQUIRE(!is_groebner(G, vars, MonomialOrder::DegRevLex));
+    REQUIRE(!is_reduced_basis(G, vars, MonomialOrder::DegRevLex));
+}
+
+TEST_CASE("Timing and cancellation limits", "[groebner]")
+{
+    auto x = symbol("x");
+    auto y = symbol("y");
+    auto z = symbol("z");
+    vec_basic polys = {
+        add(add(pow(x, integer(3)), x), integer(1)),
+        add(add(pow(y, integer(2)), y), integer(1)),
+        sub(mul(add(x, y), z), add(pow(x, integer(2)), y)),
+    };
+    vec_sym vars = {x, y, z};
+    
+    GroebnerOptions opt;
+    opt.order = MonomialOrder::Lex;
+    opt.max_milliseconds = 1; // Extremely tiny to force timeout on sympy_minpoly_lex
+    auto res = groebner_basis(polys, vars, opt);
+    REQUIRE(res.status == GroebnerStatus::ResourceLimitExceeded);
+}
+
+TEST_CASE("Max degree limit checks", "[groebner]")
+{
+    auto x = symbol("x");
+    auto y = symbol("y");
+    vec_basic polys = {sub(pow(x, integer(5)), y), sub(pow(y, integer(5)), x)};
+    vec_sym vars = {x, y};
+    
+    GroebnerOptions opt;
+    opt.max_degree = 3; // Input polynomials have degree 5, so this must trigger degree limit
+    auto res = groebner_basis(polys, vars, opt);
+    REQUIRE(res.status == GroebnerStatus::ResourceLimitExceeded);
+}
+
+TEST_CASE("Miller-Rabin and Modulus Validation", "[groebner]")
+{
+    auto x = symbol("x");
+    auto y = symbol("y");
+    vec_basic polys = {sub(pow(x, integer(2)), y)};
+    vec_sym vars = {x, y};
+    
+    // Composite modulus
+    GroebnerOptions opt_comp;
+    opt_comp.modulus = 4;
+    auto res_comp = groebner_basis(polys, vars, opt_comp);
+    REQUIRE(res_comp.status == GroebnerStatus::UnsupportedCoefficientDomain);
+    
+    // 0 modulus (fine, defaults to rational)
+    GroebnerOptions opt_0;
+    opt_0.modulus = 0;
+    auto res_0 = groebner_basis(polys, vars, opt_0);
+    REQUIRE(res_0.status == GroebnerStatus::Success);
+    
+    // 1 modulus (invalid)
+    GroebnerOptions opt_1 = opt_comp;
+    opt_1.modulus = 1;
+    auto res_1 = groebner_basis(polys, vars, opt_1);
+    REQUIRE(res_1.status == GroebnerStatus::UnsupportedCoefficientDomain);
+    
+    // Smallest prime 2 (valid)
+    GroebnerOptions opt_2 = opt_comp;
+    opt_2.modulus = 2;
+    auto res_2 = groebner_basis(polys, vars, opt_2);
+    REQUIRE(res_2.status == GroebnerStatus::Success);
+    
+    // Large 31-bit prime 2147483647 (valid)
+    GroebnerOptions opt_large = opt_comp;
+    opt_large.modulus = 2147483647;
+    auto res_large = groebner_basis(polys, vars, opt_large);
+    REQUIRE(res_large.status == GroebnerStatus::Success);
+    
+    // Too large prime (composite or > 2^31) 2147483648 (invalid)
+    GroebnerOptions opt_too_large = opt_comp;
+    opt_too_large.modulus = 2147483648ULL;
+    auto res_too_large = groebner_basis(polys, vars, opt_too_large);
+    REQUIRE(res_too_large.status == GroebnerStatus::UnsupportedCoefficientDomain);
+}
+
+TEST_CASE("Auto algorithm resolution choices", "[groebner]")
+{
+    auto x = symbol("x");
+    auto y = symbol("y");
+    vec_basic polys = {sub(pow(x, integer(2)), y), sub(pow(y, integer(2)), x)};
+    vec_sym vars = {x, y};
+    
+    // GF(p) DegRevLex Auto -> M4GB
+    GroebnerOptions opt_gf;
+    opt_gf.modulus = 5;
+    opt_gf.order = MonomialOrder::DegRevLex;
+    auto res_gf = groebner_basis(polys, vars, opt_gf);
+    REQUIRE(res_gf.status == GroebnerStatus::Success);
+    REQUIRE(res_gf.selected_algorithm == GroebnerAlgorithm::M4GB);
+    
+    // GF(p) GrLex Auto -> MoGVW
+    opt_gf.order = MonomialOrder::GrLex;
+    auto res_mogvw = groebner_basis(polys, vars, opt_gf);
+    REQUIRE(res_mogvw.status == GroebnerStatus::Success);
+    REQUIRE(res_mogvw.selected_algorithm == GroebnerAlgorithm::MoGVW);
+    
+    // Rational Auto with 2 polynomials -> Buchberger
+    GroebnerOptions opt_rat;
+    auto res_rat = groebner_basis(polys, vars, opt_rat);
+    REQUIRE(res_rat.status == GroebnerStatus::Success);
+    REQUIRE(res_rat.selected_algorithm == GroebnerAlgorithm::Buchberger);
+}
+
+TEST_CASE("verify_with_buchberger toggle success validation", "[groebner]")
+{
+    auto x = symbol("x");
+    auto y = symbol("y");
+    vec_basic polys = {sub(pow(x, integer(2)), y), sub(pow(y, integer(2)), x)};
+    vec_sym vars = {x, y};
+    
+    GroebnerOptions opt;
+    opt.modulus = 5;
+    opt.algorithm = GroebnerAlgorithm::M4GB;
+    opt.verify_with_buchberger = true;
+    
+    auto res = groebner_basis(polys, vars, opt);
+    REQUIRE(res.status == GroebnerStatus::Success);
+}
