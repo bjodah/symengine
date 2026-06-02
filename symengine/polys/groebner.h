@@ -95,6 +95,27 @@ GroebnerResult augmented_groebner_basis(const vec_basic &polys,
                                         const RCP<const Symbol> &auxiliary_variable,
                                         const GroebnerOptions &options = GroebnerOptions());
 
+// Compute the normal form (remainder) of poly modulo the basis G under the
+// supplied monomial order. variables fixes the indexing of exponent vectors,
+// the same convention used by groebner_basis.
+RCP<const Basic> normal_form(const RCP<const Basic> &poly,
+                             const vec_basic &G,
+                             const vec_sym &variables,
+                             MonomialOrder order = MonomialOrder::DegRevLex);
+
+// Returns true if G is a Groebner basis under the given order: every
+// S-polynomial of pairs of G reduces to zero modulo G.
+bool is_groebner(const vec_basic &G,
+                 const vec_sym &variables,
+                 MonomialOrder order = MonomialOrder::DegRevLex);
+
+// Returns true if G is a reduced Groebner basis: it is a Groebner basis, every
+// element is monic, and no term of any element is divisible by the leading
+// monomial of any other element.
+bool is_reduced_basis(const vec_basic &G,
+                      const vec_sym &variables,
+                      MonomialOrder order = MonomialOrder::DegRevLex);
+
 TriangularUnivariateSolution
 extract_univariate_linear_shape(const GroebnerResult &lex_basis,
                                 const RCP<const Symbol> &root_variable);

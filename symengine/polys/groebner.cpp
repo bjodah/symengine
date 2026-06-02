@@ -19,6 +19,22 @@
 
 namespace SymEngine {
 
+namespace {
+
+// Internal sentinel exception types so status determination does not depend on
+// string-matching the .what() message.
+struct GroebnerCancelled {};
+struct GroebnerLimitExceeded {};
+struct GroebnerNotZeroDimensional {};
+
+inline void check_cancellation(const GroebnerOptions &options) {
+    if (options.cancellation_token && options.cancellation_token->is_cancelled()) {
+        throw GroebnerCancelled{};
+    }
+}
+
+} // namespace
+
 // Overloaded coefficient converters to handle compile-time type dispatch in templates cleanly in C++11.
 inline rational_class coeff_from_basic(const RCP<const Basic> &final_coeff_expr, const RationalCoeffDomain &dom) {
     if (is_a<Integer>(*final_coeff_expr)) {
@@ -170,15 +186,13 @@ RCP<const Basic> gpoly_to_basic(const GPoly<Coeff, Domain> &gpoly, const vec_sym
 }
 
 template <typename Coeff, typename Domain>
-GPoly<Coeff, Domain> normal_form(GPoly<Coeff, Domain> p, const std::vector<GPoly<Coeff, Domain>> &G, const GroebnerOptions &options, unsigned &reduction_steps) {
+GPoly<Coeff, Domain> normal_form_impl(GPoly<Coeff, Domain> p, const std::vector<GPoly<Coeff, Domain>> &G, const GroebnerOptions &options, unsigned &reduction_steps) {
     GPoly<Coeff, Domain> remainder(p.order);
     Domain dom = p.dom;
     while (!p.is_zero()) {
-        if (options.cancellation_token && options.cancellation_token->is_cancelled()) {
-            throw SymEngineException("cancelled");
-        }
+        check_cancellation(options);
         if (options.max_reduction_steps > 0 && reduction_steps >= options.max_reduction_steps) {
-            throw SymEngineException("limit exceeded: max reduction steps");
+            throw GroebnerLimitExceeded{};
         }
         
         bool reduced = false;
@@ -211,17 +225,28 @@ GPoly<Coeff, Domain> normal_form(GPoly<Coeff, Domain> p, const std::vector<GPoly
 
 template <typename Coeff, typename Domain>
 std::vector<GPoly<Coeff, Domain>> interreduce(std::vector<GPoly<Coeff, Domain>> G, const GroebnerOptions &options, unsigned &reduction_steps) {
+    auto polys_equal = [](const GPoly<Coeff, Domain> &a, const GPoly<Coeff, Domain> &b) {
+        if (a.terms.size() != b.terms.size()) return false;
+        Domain dom;
+        for (size_t k = 0; k < a.terms.size(); ++k) {
+            if (a.terms[k].monomial != b.terms[k].monomial) return false;
+            // a - b = 0 iff is_zero(a - b)
+            if (!dom.is_zero(dom.sub(a.terms[k].coeff, b.terms[k].coeff))) return false;
+        }
+        return true;
+    };
+
     bool changed = true;
     while (changed) {
         changed = false;
         for (size_t i = 0; i < G.size(); ++i) {
             GPoly<Coeff, Domain> g = G[i];
             G.erase(G.begin() + i);
-            GPoly<Coeff, Domain> reduced_g = normal_form(g, G, options, reduction_steps);
+            GPoly<Coeff, Domain> reduced_g = normal_form_impl(g, G, options, reduction_steps);
             if (!reduced_g.is_zero()) {
                 reduced_g.make_monic();
                 G.insert(G.begin() + i, reduced_g);
-                if (reduced_g.terms.size() != g.terms.size() || reduced_g.leading_monomial() != g.leading_monomial()) {
+                if (!polys_equal(reduced_g, g)) {
                     changed = true;
                 }
             } else {
@@ -235,7 +260,6 @@ std::vector<GPoly<Coeff, Domain>> interreduce(std::vector<GPoly<Coeff, Domain>> 
 
 template <typename Coeff, typename Domain>
 std::vector<GPoly<Coeff, Domain>> buchberger(std::vector<GPoly<Coeff, Domain>> F, const GroebnerOptions &options, GroebnerStats &stats) {
-    Domain dom;
     unsigned s_pairs_processed = 0;
     unsigned reductions_to_zero = 0;
     unsigned max_basis_size = 0;
@@ -277,23 +301,24 @@ std::vector<GPoly<Coeff, Domain>> buchberger(std::vector<GPoly<Coeff, Domain>> F
     std::sort(pairs.begin(), pairs.end(), pair_cmp);
     
     while (!pairs.empty()) {
-        if (options.cancellation_token && options.cancellation_token->is_cancelled()) {
-            throw SymEngineException("cancelled");
-        }
+        check_cancellation(options);
         if (options.max_s_pairs > 0 && s_pairs_processed >= options.max_s_pairs) {
-            throw SymEngineException("limit exceeded: max s-pairs");
+            throw GroebnerLimitExceeded{};
         }
-        
+
         Pair p = pairs.front();
         pairs.erase(pairs.begin());
-        s_pairs_processed++;
-        
+
         GPoly<Coeff, Domain> &f = G[p.i];
         GPoly<Coeff, Domain> &g = G[p.j];
-        
+
         Monomial lm_f = f.leading_monomial();
         Monomial lm_g = g.leading_monomial();
-        
+
+        // Product criterion: if leading monomials are coprime, S(f,g) reduces
+        // to zero w.r.t. {f,g} alone (Buchberger 1979). Skip without counting
+        // as an S-pair processed or as a reduction to zero — it is a criterion
+        // hit.
         bool coprime = true;
         for (size_t k = 0; k < lm_f.size(); ++k) {
             if (lm_f[k] > 0 && lm_g[k] > 0) {
@@ -302,9 +327,10 @@ std::vector<GPoly<Coeff, Domain>> buchberger(std::vector<GPoly<Coeff, Domain>> F
             }
         }
         if (coprime) {
-            reductions_to_zero++;
             continue;
         }
+
+        s_pairs_processed++;
         
         Monomial l = p.lcm_mon;
         Monomial q_f = quotient(l, lm_f);
@@ -319,7 +345,7 @@ std::vector<GPoly<Coeff, Domain>> buchberger(std::vector<GPoly<Coeff, Domain>> F
         GPoly<Coeff, Domain> s_poly = term_f;
         s_poly.sub_poly(term_g);
         
-        GPoly<Coeff, Domain> rem = normal_form(s_poly, G, options, reduction_steps);
+        GPoly<Coeff, Domain> rem = normal_form_impl(s_poly, G, options, reduction_steps);
         if (!rem.is_zero()) {
             rem.make_monic();
             G.push_back(rem);
@@ -339,8 +365,8 @@ std::vector<GPoly<Coeff, Domain>> buchberger(std::vector<GPoly<Coeff, Domain>> F
     stats.s_pairs_processed = s_pairs_processed;
     stats.reductions_to_zero = reductions_to_zero;
     stats.max_basis_size = std::max(max_basis_size, (unsigned)G.size());
-    stats.input_polys = F.size();
-    stats.output_polys = G.size();
+    stats.input_polys = static_cast<unsigned>(F.size());
+    stats.output_polys = static_cast<unsigned>(G.size());
     
     return G;
 }
@@ -397,16 +423,135 @@ GroebnerResult groebner_basis(const vec_basic &polys,
             result.stats = stats;
             result.status = GroebnerStatus::Success;
         }
-    } catch (const SymEngineException &e) {
-        if (std::string(e.what()).find("cancelled") != std::string::npos) {
-            result.status = GroebnerStatus::Cancelled;
-        } else if (std::string(e.what()).find("limit exceeded") != std::string::npos) {
-            result.status = GroebnerStatus::ResourceLimitExceeded;
-        } else {
-            throw e;
-        }
+    } catch (const GroebnerCancelled &) {
+        result.status = GroebnerStatus::Cancelled;
+    } catch (const GroebnerLimitExceeded &) {
+        result.status = GroebnerStatus::ResourceLimitExceeded;
     }
     return result;
+}
+
+// Public introspection helpers. Used both by tests (property checks) and by
+// downstream code that wants to assert a basis is canonical.
+template <typename Coeff, typename Domain>
+static RCP<const Basic> normal_form_dispatch(const RCP<const Basic> &poly,
+                                             const vec_basic &G,
+                                             const vec_sym &variables,
+                                             MonomialOrder order) {
+    GPoly<Coeff, Domain> p = basic_to_gpoly<Coeff, Domain>(poly, variables, order);
+    std::vector<GPoly<Coeff, Domain>> Ginternal;
+    for (const auto &g : G) {
+        auto gp = basic_to_gpoly<Coeff, Domain>(g, variables, order);
+        if (!gp.is_zero()) Ginternal.push_back(gp);
+    }
+    GroebnerOptions options;
+    options.order = order;
+    unsigned reduction_steps = 0;
+    GPoly<Coeff, Domain> r = normal_form_impl(p, Ginternal, options, reduction_steps);
+    return gpoly_to_basic<Coeff, Domain>(r, variables);
+}
+
+RCP<const Basic> normal_form(const RCP<const Basic> &poly,
+                             const vec_basic &G,
+                             const vec_sym &variables,
+                             MonomialOrder order) {
+    vec_basic all = G;
+    all.push_back(poly);
+    bool symbolic = has_symbolic_parameters(all, variables);
+    if (symbolic) {
+        return normal_form_dispatch<Expression, ExpressionCoeffDomain>(poly, G, variables, order);
+    }
+    return normal_form_dispatch<rational_class, RationalCoeffDomain>(poly, G, variables, order);
+}
+
+template <typename Coeff, typename Domain>
+static bool is_groebner_dispatch(const vec_basic &G,
+                                 const vec_sym &variables,
+                                 MonomialOrder order) {
+    std::vector<GPoly<Coeff, Domain>> Ginternal;
+    for (const auto &g : G) {
+        auto gp = basic_to_gpoly<Coeff, Domain>(g, variables, order);
+        if (!gp.is_zero()) Ginternal.push_back(gp);
+    }
+    GroebnerOptions options;
+    options.order = order;
+    unsigned reduction_steps = 0;
+    for (size_t i = 0; i < Ginternal.size(); ++i) {
+        for (size_t j = i + 1; j < Ginternal.size(); ++j) {
+            const auto &fi = Ginternal[i];
+            const auto &fj = Ginternal[j];
+            const Monomial &lm_i = fi.leading_monomial();
+            const Monomial &lm_j = fj.leading_monomial();
+            // product criterion shortcut
+            bool coprime = true;
+            for (size_t k = 0; k < lm_i.size(); ++k) {
+                if (lm_i[k] > 0 && lm_j[k] > 0) { coprime = false; break; }
+            }
+            if (coprime) continue;
+            Monomial l = lcm(lm_i, lm_j);
+            Monomial q_i = quotient(l, lm_i);
+            Monomial q_j = quotient(l, lm_j);
+            GPoly<Coeff, Domain> ti = fi;
+            ti.mul_monomial(q_i);
+            GPoly<Coeff, Domain> tj = fj;
+            tj.mul_monomial(q_j);
+            GPoly<Coeff, Domain> s_poly = ti;
+            s_poly.sub_poly(tj);
+            GPoly<Coeff, Domain> rem = normal_form_impl(s_poly, Ginternal, options, reduction_steps);
+            if (!rem.is_zero()) return false;
+        }
+    }
+    return true;
+}
+
+bool is_groebner(const vec_basic &G,
+                 const vec_sym &variables,
+                 MonomialOrder order) {
+    if (G.empty()) return true;
+    bool symbolic = has_symbolic_parameters(G, variables);
+    if (symbolic) {
+        return is_groebner_dispatch<Expression, ExpressionCoeffDomain>(G, variables, order);
+    }
+    return is_groebner_dispatch<rational_class, RationalCoeffDomain>(G, variables, order);
+}
+
+template <typename Coeff, typename Domain>
+static bool is_reduced_basis_dispatch(const vec_basic &G,
+                                      const vec_sym &variables,
+                                      MonomialOrder order) {
+    Domain dom;
+    std::vector<GPoly<Coeff, Domain>> Ginternal;
+    for (const auto &g : G) {
+        auto gp = basic_to_gpoly<Coeff, Domain>(g, variables, order);
+        if (gp.is_zero()) return false; // zeros do not belong to a reduced basis
+        Ginternal.push_back(gp);
+    }
+    // Each leading coefficient must be one (monic).
+    for (const auto &gp : Ginternal) {
+        if (!dom.is_one(gp.leading_coeff())) return false;
+    }
+    // No term of any element may be divisible by another's leading monomial.
+    for (size_t i = 0; i < Ginternal.size(); ++i) {
+        const Monomial &lm_i = Ginternal[i].leading_monomial();
+        for (size_t j = 0; j < Ginternal.size(); ++j) {
+            if (i == j) continue;
+            for (const auto &t : Ginternal[j].terms) {
+                if (divides(lm_i, t.monomial)) return false;
+            }
+        }
+    }
+    return is_groebner_dispatch<Coeff, Domain>(G, variables, order);
+}
+
+bool is_reduced_basis(const vec_basic &G,
+                      const vec_sym &variables,
+                      MonomialOrder order) {
+    if (G.empty()) return true;
+    bool symbolic = has_symbolic_parameters(G, variables);
+    if (symbolic) {
+        return is_reduced_basis_dispatch<Expression, ExpressionCoeffDomain>(G, variables, order);
+    }
+    return is_reduced_basis_dispatch<rational_class, RationalCoeffDomain>(G, variables, order);
 }
 
 bool is_zero_dimensional(const std::vector<Monomial> &leading_monomials, size_t n) {
@@ -471,7 +616,7 @@ GroebnerResult fglm_impl(const GroebnerResult &source, MonomialOrder target_orde
     }
     
     if (!is_zero_dimensional(leading_monomials, n)) {
-        throw SymEngineException("not zero-dimensional");
+        throw GroebnerNotZeroDimensional{};
     }
     
     std::vector<unsigned int> bounds(n, 0);
@@ -534,10 +679,8 @@ GroebnerResult fglm_impl(const GroebnerResult &source, MonomialOrder target_orde
     unsigned reduction_steps = 0;
     
     while (!queue.empty()) {
-        if (options.cancellation_token && options.cancellation_token->is_cancelled()) {
-            throw SymEngineException("cancelled");
-        }
-        
+        check_cancellation(options);
+
         std::sort(queue.begin(), queue.end(), [target_order](const Monomial &a, const Monomial &b) {
             return compare_monomial_less(a, b, target_order);
         });
@@ -557,7 +700,7 @@ GroebnerResult fglm_impl(const GroebnerResult &source, MonomialOrder target_orde
         GPoly<Coeff, Domain> gp_v(source.order);
         gp_v.terms.push_back({v, dom.one()});
         
-        GPoly<Coeff, Domain> nf_v = normal_form(gp_v, G1, options, reduction_steps);
+        GPoly<Coeff, Domain> nf_v = normal_form_impl(gp_v, G1, options, reduction_steps);
         std::vector<Coeff> c_v = get_coordinate_vector(nf_v);
         
         GPoly<Coeff, Domain> rel_v(target_order);
@@ -678,16 +821,12 @@ GroebnerResult fglm_convert(const GroebnerResult &source,
         } else {
             result = fglm_impl<rational_class, RationalCoeffDomain>(source, target_order, options);
         }
-    } catch (const SymEngineException &e) {
-        if (std::string(e.what()).find("cancelled") != std::string::npos) {
-            result.status = GroebnerStatus::Cancelled;
-        } else if (std::string(e.what()).find("limit exceeded") != std::string::npos) {
-            result.status = GroebnerStatus::ResourceLimitExceeded;
-        } else if (std::string(e.what()).find("not zero-dimensional") != std::string::npos) {
-            result.status = GroebnerStatus::NotZeroDimensional;
-        } else {
-            throw e;
-        }
+    } catch (const GroebnerCancelled &) {
+        result.status = GroebnerStatus::Cancelled;
+    } catch (const GroebnerLimitExceeded &) {
+        result.status = GroebnerStatus::ResourceLimitExceeded;
+    } catch (const GroebnerNotZeroDimensional &) {
+        result.status = GroebnerStatus::NotZeroDimensional;
     }
     return result;
 }
@@ -711,17 +850,18 @@ extract_univariate_linear_shape(const GroebnerResult &lex_basis,
                                 const RCP<const Symbol> &root_variable) {
     TriangularUnivariateSolution sol;
     sol.root_variable = root_variable;
-    
-    vec_basic eqns;
-    RCP<const Basic> upoly; // defaults to null
-    
+
     set_basic other_vars;
     for (const auto &v : lex_basis.variables) {
         if (!eq(*v, *root_variable)) {
             other_vars.insert(v);
         }
     }
-    
+
+    vec_basic eqns;
+    RCP<const Basic> upoly;
+    unsigned upoly_count = 0;
+
     for (const auto &poly : lex_basis.basis) {
         set_basic syms = free_symbols(*poly);
         bool has_other = false;
@@ -732,20 +872,28 @@ extract_univariate_linear_shape(const GroebnerResult &lex_basis,
             }
         }
         if (!has_other) {
+            // skip pure-constant polynomials (unit ideal already handled upstream)
             if (!eq(*poly, *zero) && !is_a<Integer>(*poly) && !is_a<Rational>(*poly)) {
                 upoly = poly;
+                upoly_count++;
             }
         } else {
             eqns.push_back(poly);
         }
     }
-    
+
     if (upoly.is_null()) {
-        throw SymEngineException("Univariate polynomial not found");
+        throw SymEngineException("Univariate polynomial in root_variable not found in lex basis");
     }
-    
+    if (upoly_count > 1) {
+        // A reduced lex Groebner basis of a zero-dimensional ideal cannot
+        // contain two distinct polynomials in only root_variable, so this is a
+        // structural error.
+        throw SymEngineException("Multiple univariate polynomials in root_variable found in lex basis");
+    }
+
     sol.univariate_polynomial = upoly;
-    
+
     vec_sym linear_vars;
     for (const auto &v : lex_basis.variables) {
         if (!eq(*v, *root_variable)) {
@@ -753,27 +901,24 @@ extract_univariate_linear_shape(const GroebnerResult &lex_basis,
         }
     }
     sol.linear_variables = linear_vars;
-    
+
+    if (linear_vars.empty()) {
+        // Univariate ideal — nothing to back-substitute.
+        sol.linear_solution = DenseMatrix(0, 1, vec_basic{});
+        return sol;
+    }
+
+    if (eqns.size() < linear_vars.size()) {
+        throw SymEngineException("Triangular solver: too few equations in remaining variables");
+    }
+
     try {
-        auto pair_mat = linear_eqns_to_matrix(eqns, linear_vars);
-        DenseMatrix A = pair_mat.first;
-        DenseMatrix b = pair_mat.second;
-        
-        unsigned nrows = A.nrows();
-        unsigned ncols = A.ncols();
-        DenseMatrix augmented(nrows, ncols + 1);
-        for (unsigned i = 0; i < nrows; ++i) {
-            for (unsigned j = 0; j < ncols; ++j) {
-                augmented.set(i, j, A.get(i, j));
-            }
-            augmented.set(i, ncols, b.get(i, 0));
-        }
-        vec_basic solution_vec = linsolve(augmented, linear_vars);
+        vec_basic solution_vec = linsolve(eqns, linear_vars);
         sol.linear_solution = DenseMatrix(static_cast<unsigned int>(linear_vars.size()), 1, solution_vec);
     } catch (...) {
-        throw SymEngineException("System is not linear in the remaining variables");
+        throw SymEngineException("Lex basis is not linear in the remaining variables");
     }
-    
+
     return sol;
 }
 

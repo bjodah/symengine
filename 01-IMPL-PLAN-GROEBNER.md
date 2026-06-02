@@ -951,6 +951,52 @@ Potential improvements:
 5. Exact output ordering rules for basis polynomials and terms.
 6. Whether memory budgeting should be exposed in the first native API or left to embedding applications. Unlike the `symcse` subprocess path, SymEngine cannot safely use `ulimit` internally.
 
+## Resolved API and Behavior Decisions (as implemented)
+
+These reflect choices made during the first implementation in `symengine/polys/groebner.{h,cpp}`. Revisit them if the rationale changes.
+
+1. Cancellation/limit control flow:
+   - The public API never throws for cancellation or resource limits. Internally, sentinel types `GroebnerCancelled`, `GroebnerLimitExceeded`, `GroebnerNotZeroDimensional` are used so status determination does not rely on string-matching exception messages. These are translated to `GroebnerStatus::{Cancelled, ResourceLimitExceeded, NotZeroDimensional}` on the result.
+   - Other unexpected `SymEngineException`s (e.g. malformed input) propagate. This keeps user-facing errors distinguishable from cooperative stops.
+2. `GroebnerResult::basis` exposes `vec_basic` only in this first PR. Typed polynomial overloads remain a follow-up.
+3. Symbolic coefficient division proceeds formally in the field of fractions over the parameter symbols. Denominator/specialization conditions are not yet tracked, but the field is reserved for a future diagnostics extension.
+4. `MRatPoly` is deferred. `ExpressionCoeffDomain` provides a workable parameter coefficient layer until performance demands it.
+5. Output ordering: when `sort_output` is true, basis polynomials are sorted descending by leading monomial under the active order. Within each polynomial terms are stored descending in the active order. The reduced-basis canonical form (monic, no term divisible by another LM) plus this ordering yields a deterministic output.
+6. Cooperative cancellation and `max_s_pairs` / `max_reduction_steps` / `max_milliseconds` are surfaced in `GroebnerOptions`. Memory budgeting is left to the embedder; the library does not call `ulimit` or signal handlers by default.
+
+### Public introspection helpers (added beyond the initial sketch)
+
+To keep property-based tests in-tree and avoid duplicating reduction logic, the following are exposed:
+
+```cpp
+RCP<const Basic> normal_form(const RCP<const Basic> &poly,
+                             const vec_basic &G,
+                             const vec_sym &variables,
+                             MonomialOrder order = MonomialOrder::DegRevLex);
+
+bool is_groebner(const vec_basic &G,
+                 const vec_sym &variables,
+                 MonomialOrder order = MonomialOrder::DegRevLex);
+
+bool is_reduced_basis(const vec_basic &G,
+                      const vec_sym &variables,
+                      MonomialOrder order = MonomialOrder::DegRevLex);
+```
+
+- `normal_form` performs multivariate polynomial reduction modulo `G` under `order`.
+- `is_groebner` checks Buchberger's criterion: every S-polynomial of pairs in `G` reduces to zero modulo `G`.
+- `is_reduced_basis` additionally verifies that every leading coefficient is one and that no term of any basis element is divisible by another's leading monomial.
+
+### Buchberger statistic accounting
+
+- `stats.s_pairs_processed` counts only pairs whose S-polynomial was actually constructed and reduced.
+- Pairs eliminated by the product criterion (leading-monomial coprimality) are not counted as processed and are not counted as reductions to zero — they are a separate criterion-hit class. If a more granular count is needed later, add a `criterion_hits` field.
+- `stats.reductions_to_zero` counts only S-polynomials whose normal form was zero after reduction by the current basis.
+
+### Augmented-variable convention
+
+`augmented_groebner_basis(polys, variables, selected_variable, auxiliary_variable, options)` always appends the auxiliary variable last in the augmented variable list. Because lex ordering treats `variables[0] > variables[1] > … > variables[n-1]`, the auxiliary variable becomes the least under lex, and is therefore the variable that appears as the univariate polynomial in the lex Groebner basis. Callers should use the auxiliary variable as `root_variable` when calling `extract_univariate_linear_shape`.
+
 ## Recommended First Pull Request
 
 Keep the first PR small enough to review:
