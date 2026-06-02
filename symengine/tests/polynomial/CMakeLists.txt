@@ -48,7 +48,7 @@ if (WITH_PIRANHA)
     add_test(test_uratpoly_piranha ${PROJECT_BINARY_DIR}/test_uratpoly_piranha)
 endif()
 
-add_executable(test_groebner test_groebner.cpp)
+add_executable(test_groebner test_groebner.cpp test_groebner_f5b.cpp test_groebner_mogvw.cpp test_groebner_m4gb.cpp)
 target_link_libraries(test_groebner symengine catch)
 add_test(test_groebner ${PROJECT_BINARY_DIR}/test_groebner)
 

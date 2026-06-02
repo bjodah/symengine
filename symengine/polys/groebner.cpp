@@ -1,5 +1,8 @@
 #include <symengine/polys/groebner.h>
 #include <symengine/polys/groebner_internal.h>
+#include <symengine/polys/groebner_f5b.h>
+#include <symengine/polys/groebner_mogvw.h>
+#include <symengine/polys/groebner_m4gb.h>
 #include <symengine/rational.h>
 #include <symengine/expression.h>
 #include <symengine/symbol.h>
@@ -19,22 +22,6 @@
 
 namespace SymEngine {
 
-namespace {
-
-// Internal sentinel exception types so status determination does not depend on
-// string-matching the .what() message.
-struct GroebnerCancelled {};
-struct GroebnerLimitExceeded {};
-struct GroebnerNotZeroDimensional {};
-
-inline void check_cancellation(const GroebnerOptions &options) {
-    if (options.cancellation_token && options.cancellation_token->is_cancelled()) {
-        throw GroebnerCancelled{};
-    }
-}
-
-} // namespace
-
 // Overloaded coefficient converters to handle compile-time type dispatch in templates cleanly in C++11.
 inline rational_class coeff_from_basic(const RCP<const Basic> &final_coeff_expr, const RationalCoeffDomain &dom) {
     if (is_a<Integer>(*final_coeff_expr)) {
@@ -50,12 +37,41 @@ inline Expression coeff_from_basic(const RCP<const Basic> &final_coeff_expr, con
     return Expression(final_coeff_expr);
 }
 
+inline uint64_t coeff_from_basic(const RCP<const Basic> &final_coeff_expr, const GFpCoeffDomain &dom) {
+    uint64_t p = dom.modulus();
+    if (is_a<Integer>(*final_coeff_expr)) {
+        auto ic = down_cast<const Integer &>(*final_coeff_expr).as_integer_class();
+        integer_class m = ic % integer_class(p);
+        if (m < 0) m += p;
+        return mp_get_ui(m);
+    } else if (is_a<Rational>(*final_coeff_expr)) {
+        auto rc = down_cast<const Rational &>(*final_coeff_expr).as_rational_class();
+        integer_class num = rc.get_num();
+        integer_class den = rc.get_den();
+        integer_class num_mod = num % integer_class(p);
+        if (num_mod < 0) num_mod += p;
+        integer_class den_mod = den % integer_class(p);
+        if (den_mod < 0) den_mod += p;
+        
+        if (den_mod == 0) {
+            throw GroebnerUnsupportedDomain{};
+        }
+        return dom.div(mp_get_ui(num_mod), mp_get_ui(den_mod));
+    } else {
+        throw GroebnerUnsupportedDomain{};
+    }
+}
+
 inline RCP<const Basic> coeff_to_basic(const rational_class &c, const RationalCoeffDomain &dom) {
     return Rational::from_mpq(c);
 }
 
 inline RCP<const Basic> coeff_to_basic(const Expression &expr, const ExpressionCoeffDomain &dom) {
     return expr.get_basic();
+}
+
+inline RCP<const Basic> coeff_to_basic(uint64_t c, const GFpCoeffDomain &dom) {
+    return integer(c);
 }
 
 bool has_symbolic_parameters(const vec_basic &polys, const vec_sym &variables) {
@@ -130,9 +146,9 @@ void parse_term(const RCP<const Basic> &term_expr,
 }
 
 template <typename Coeff, typename Domain>
-GPoly<Coeff, Domain> basic_to_gpoly(const RCP<const Basic> &poly, const vec_sym &variables, MonomialOrder order) {
-    Domain dom;
+GPoly<Coeff, Domain> basic_to_gpoly(const RCP<const Basic> &poly, const vec_sym &variables, MonomialOrder order, const Domain &dom = Domain()) {
     GPoly<Coeff, Domain> res(order);
+    res.dom = dom;
 
     RCP<const Basic> expanded = expand(poly);
 
@@ -183,79 +199,6 @@ RCP<const Basic> gpoly_to_basic(const GPoly<Coeff, Domain> &gpoly, const vec_sym
         return integer(0);
     }
     return add(sum_terms);
-}
-
-template <typename Coeff, typename Domain>
-GPoly<Coeff, Domain> normal_form_impl(GPoly<Coeff, Domain> p, const std::vector<GPoly<Coeff, Domain>> &G, const GroebnerOptions &options, unsigned &reduction_steps) {
-    GPoly<Coeff, Domain> remainder(p.order);
-    Domain dom = p.dom;
-    while (!p.is_zero()) {
-        check_cancellation(options);
-        if (options.max_reduction_steps > 0 && reduction_steps >= options.max_reduction_steps) {
-            throw GroebnerLimitExceeded{};
-        }
-        
-        bool reduced = false;
-        const Monomial &lm_p = p.leading_monomial();
-        for (const auto &g : G) {
-            if (g.is_zero()) continue;
-            const Monomial &lm_g = g.leading_monomial();
-            if (divides(lm_g, lm_p)) {
-                Monomial q_mon = quotient(lm_p, lm_g);
-                Coeff q_coeff = dom.div(p.leading_coeff(), g.leading_coeff());
-                
-                GPoly<Coeff, Domain> term_g = g;
-                term_g.mul_monomial(q_mon);
-                term_g.scale(q_coeff);
-                p.sub_poly(term_g);
-                
-                reduced = true;
-                reduction_steps++;
-                break;
-            }
-        }
-        if (!reduced) {
-            remainder.terms.push_back(p.terms[0]);
-            p.terms.erase(p.terms.begin());
-        }
-    }
-    remainder.canonicalize();
-    return remainder;
-}
-
-template <typename Coeff, typename Domain>
-std::vector<GPoly<Coeff, Domain>> interreduce(std::vector<GPoly<Coeff, Domain>> G, const GroebnerOptions &options, unsigned &reduction_steps) {
-    auto polys_equal = [](const GPoly<Coeff, Domain> &a, const GPoly<Coeff, Domain> &b) {
-        if (a.terms.size() != b.terms.size()) return false;
-        Domain dom;
-        for (size_t k = 0; k < a.terms.size(); ++k) {
-            if (a.terms[k].monomial != b.terms[k].monomial) return false;
-            // a - b = 0 iff is_zero(a - b)
-            if (!dom.is_zero(dom.sub(a.terms[k].coeff, b.terms[k].coeff))) return false;
-        }
-        return true;
-    };
-
-    bool changed = true;
-    while (changed) {
-        changed = false;
-        for (size_t i = 0; i < G.size(); ++i) {
-            GPoly<Coeff, Domain> g = G[i];
-            G.erase(G.begin() + i);
-            GPoly<Coeff, Domain> reduced_g = normal_form_impl(g, G, options, reduction_steps);
-            if (!reduced_g.is_zero()) {
-                reduced_g.make_monic();
-                G.insert(G.begin() + i, reduced_g);
-                if (!polys_equal(reduced_g, g)) {
-                    changed = true;
-                }
-            } else {
-                changed = true;
-                --i;
-            }
-        }
-    }
-    return G;
 }
 
 template <typename Coeff, typename Domain>
@@ -371,6 +314,15 @@ std::vector<GPoly<Coeff, Domain>> buchberger(std::vector<GPoly<Coeff, Domain>> F
     return G;
 }
 
+GroebnerAlgorithm resolve_algorithm(const vec_basic &polys,
+                                    const vec_sym &variables,
+                                    const GroebnerOptions &options) {
+    if (options.algorithm != GroebnerAlgorithm::Auto) {
+        return options.algorithm;
+    }
+    return GroebnerAlgorithm::Buchberger;
+}
+
 GroebnerResult groebner_basis(const vec_basic &polys,
                               const vec_sym &variables,
                               const GroebnerOptions &options) {
@@ -383,16 +335,100 @@ GroebnerResult groebner_basis(const vec_basic &polys,
         return result;
     }
     
+    GroebnerAlgorithm alg = resolve_algorithm(polys, variables, options);
+    if (alg != GroebnerAlgorithm::Buchberger && alg != GroebnerAlgorithm::F5B && 
+        alg != GroebnerAlgorithm::MoGVW && alg != GroebnerAlgorithm::M4GB) {
+        result.status = GroebnerStatus::UnsupportedCoefficientDomain;
+        return result;
+    }
+    
     bool symbolic = has_symbolic_parameters(polys, variables);
+    if (options.modulus > 0 && symbolic) {
+        result.status = GroebnerStatus::UnsupportedCoefficientDomain;
+        return result;
+    }
+    if (alg == GroebnerAlgorithm::MoGVW) {
+        if (symbolic) {
+            result.status = GroebnerStatus::UnsupportedCoefficientDomain;
+            return result;
+        }
+        if (options.order != MonomialOrder::DegRevLex && options.order != MonomialOrder::GrLex) {
+            result.status = GroebnerStatus::UnsupportedCoefficientDomain;
+            return result;
+        }
+    }
+    
+    if (alg == GroebnerAlgorithm::M4GB) {
+        if (symbolic || options.modulus == 0) {
+            result.status = GroebnerStatus::UnsupportedCoefficientDomain;
+            return result;
+        }
+        if (options.order != MonomialOrder::DegRevLex) {
+            result.status = GroebnerStatus::UnsupportedCoefficientDomain;
+            return result;
+        }
+    }
     
     try {
-        if (symbolic) {
+        if (options.modulus > 0) {
+            uint64_t p = options.modulus;
+            if (p < 2 || p >= (1ULL << 31)) {
+                result.status = GroebnerStatus::UnsupportedCoefficientDomain;
+                return result;
+            }
+            auto is_prime = [](uint64_t n) {
+                if (n < 2) return false;
+                for (uint64_t i = 2; i <= n / i; ++i) {
+                    if (n % i == 0) return false;
+                }
+                return true;
+            };
+            if (!is_prime(p)) {
+                result.status = GroebnerStatus::UnsupportedCoefficientDomain;
+                return result;
+            }
+
+            GFpCoeffDomain dom(p);
+            std::vector<GPoly<uint64_t, GFpCoeffDomain>> F;
+            for (const auto &poly : polys) {
+                F.push_back(basic_to_gpoly<uint64_t, GFpCoeffDomain>(poly, variables, options.order, dom));
+            }
+            
+            GroebnerStats stats;
+            std::vector<GPoly<uint64_t, GFpCoeffDomain>> G;
+            if (alg == GroebnerAlgorithm::F5B) {
+                G = f5b_impl<uint64_t, GFpCoeffDomain>(F, options, stats);
+            } else if (alg == GroebnerAlgorithm::MoGVW) {
+                G = groebner_basis_mogvw_impl<uint64_t, GFpCoeffDomain>(F, options, stats);
+            } else if (alg == GroebnerAlgorithm::M4GB) {
+                G = groebner_basis_m4gb_impl(F, options, stats);
+            } else {
+                G = buchberger<uint64_t, GFpCoeffDomain>(F, options, stats);
+            }
+
+            result.basis.clear();
+            if (options.sort_output) {
+                std::sort(G.begin(), G.end(), [options](const GPoly<uint64_t, GFpCoeffDomain> &a, const GPoly<uint64_t, GFpCoeffDomain> &b) {
+                    return compare_monomial_less(b.leading_monomial(), a.leading_monomial(), options.order);
+                });
+            }
+            for (const auto &g : G) {
+                result.basis.push_back(gpoly_to_basic<uint64_t, GFpCoeffDomain>(g, variables));
+            }
+            result.stats = stats;
+            result.status = GroebnerStatus::Success;
+        } else if (symbolic) {
             std::vector<GPoly<Expression, ExpressionCoeffDomain>> F;
             for (const auto &poly : polys) {
                 F.push_back(basic_to_gpoly<Expression, ExpressionCoeffDomain>(poly, variables, options.order));
             }
             GroebnerStats stats;
-            auto G = buchberger<Expression, ExpressionCoeffDomain>(F, options, stats);
+            std::vector<GPoly<Expression, ExpressionCoeffDomain>> G;
+            if (alg == GroebnerAlgorithm::F5B) {
+                G = f5b_impl<Expression, ExpressionCoeffDomain>(F, options, stats);
+            } else {
+                G = buchberger<Expression, ExpressionCoeffDomain>(F, options, stats);
+            }
             result.basis.clear();
             if (options.sort_output) {
                 std::sort(G.begin(), G.end(), [options](const GPoly<Expression, ExpressionCoeffDomain> &a, const GPoly<Expression, ExpressionCoeffDomain> &b) {
@@ -410,7 +446,14 @@ GroebnerResult groebner_basis(const vec_basic &polys,
                 F.push_back(basic_to_gpoly<rational_class, RationalCoeffDomain>(poly, variables, options.order));
             }
             GroebnerStats stats;
-            auto G = buchberger<rational_class, RationalCoeffDomain>(F, options, stats);
+            std::vector<GPoly<rational_class, RationalCoeffDomain>> G;
+            if (alg == GroebnerAlgorithm::F5B) {
+                G = f5b_impl<rational_class, RationalCoeffDomain>(F, options, stats);
+            } else if (alg == GroebnerAlgorithm::MoGVW) {
+                G = groebner_basis_mogvw_impl<rational_class, RationalCoeffDomain>(F, options, stats);
+            } else {
+                G = buchberger<rational_class, RationalCoeffDomain>(F, options, stats);
+            }
             result.basis.clear();
             if (options.sort_output) {
                 std::sort(G.begin(), G.end(), [options](const GPoly<rational_class, RationalCoeffDomain> &a, const GPoly<rational_class, RationalCoeffDomain> &b) {
@@ -427,6 +470,14 @@ GroebnerResult groebner_basis(const vec_basic &polys,
         result.status = GroebnerStatus::Cancelled;
     } catch (const GroebnerLimitExceeded &) {
         result.status = GroebnerStatus::ResourceLimitExceeded;
+    } catch (const GroebnerUnsupportedDomain &) {
+        result.status = GroebnerStatus::UnsupportedCoefficientDomain;
+    }
+    if (result.status == GroebnerStatus::Success) {
+        result.stats.input_polys = static_cast<unsigned>(polys.size());
+        result.stats.output_polys = static_cast<unsigned>(result.basis.size());
+        result.stats.max_basis_size = std::max(
+            result.stats.max_basis_size, result.stats.output_polys);
     }
     return result;
 }

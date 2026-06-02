@@ -21,6 +21,7 @@ enum class GroebnerAlgorithm {
     Buchberger,
     F5B,
     MoGVW,
+    M4GB,
     Auto
 };
 
@@ -56,6 +57,19 @@ struct GroebnerOptions {
     unsigned max_s_pairs = 0;
     unsigned max_reduction_steps = 0;
     unsigned max_milliseconds = 0;
+
+    // Finite-field coefficient domain modulus. 0 -> rational/Expression as today.
+    // Any prime p with 2 <= p < 2^31 is valid.
+    uint64_t modulus = 0;
+
+    // Matrix / degree controls.
+    unsigned matrix_batch_size = 0;     // 0 = algorithm default
+    unsigned max_matrix_rows = 0;       // 0 = unlimited
+    unsigned max_matrix_columns = 0;    // 0 = unlimited
+    unsigned max_degree = 0;            // 0 = unlimited
+
+    // Verification toggle for tests / debugging.
+    bool verify_with_buchberger = false;
 };
 
 struct GroebnerStats {
@@ -64,6 +78,25 @@ struct GroebnerStats {
     unsigned s_pairs_processed = 0;
     unsigned reductions_to_zero = 0;
     unsigned max_basis_size = 0;
+
+    // F5B + MoGVW signature-based counters
+    unsigned rejected_by_syzygy = 0;
+    unsigned rejected_by_rewritten = 0;
+    unsigned f5_reductions = 0;
+    unsigned labeled_monomials_lifted = 0;
+    unsigned rejected_by_lcm = 0;
+    unsigned collisions_resolved = 0;
+
+    // M4GB / F4 matrix counters
+    unsigned matrices_built = 0;
+    unsigned max_matrix_rows_seen = 0;
+    unsigned max_matrix_columns_seen = 0;
+    unsigned rows_reduced_to_zero = 0;
+    unsigned polymatrix_entries_built = 0;
+    unsigned polymatrix_generation = 0;
+
+    // Parametric assumptions
+    std::vector<RCP<const Basic>> genericity_assumptions;
 };
 
 struct GroebnerResult {

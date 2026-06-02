@@ -88,14 +88,29 @@ void print_result(const std::string &name, unsigned iterations, const BenchResul
               << " basis=" << std::setw(4) << res.result.basis.size()
               << " spairs=" << std::setw(6) << s.s_pairs_processed
               << " zero=" << std::setw(6) << s.reductions_to_zero
-              << " max_basis=" << s.max_basis_size
+              << " max_basis=" << std::setw(4) << s.max_basis_size
+              << " syz=" << std::setw(6) << s.rejected_by_syzygy
+              << " rew=" << std::setw(6) << s.rejected_by_rewritten
+              << " f5red=" << std::setw(6) << s.f5_reductions
+              << " lift=" << std::setw(6) << s.labeled_monomials_lifted
+              << " lcmrej=" << std::setw(6) << s.rejected_by_lcm
+              << " mat=" << std::setw(4) << s.matrices_built
+              << " max_rows=" << std::setw(5) << s.max_matrix_rows_seen
+              << " max_cols=" << std::setw(5) << s.max_matrix_columns_seen
+              << " pm_entries=" << s.polymatrix_entries_built
               << std::endl;
 }
 
-GroebnerResult compute_basis(const vec_basic &polys, const vec_sym &vars, MonomialOrder order)
+GroebnerResult compute_basis(const vec_basic &polys,
+                             const vec_sym &vars,
+                             MonomialOrder order,
+                             GroebnerAlgorithm algorithm = GroebnerAlgorithm::Buchberger,
+                             uint64_t modulus = 0)
 {
     GroebnerOptions opt;
     opt.order = order;
+    opt.algorithm = algorithm;
+    opt.modulus = modulus;
     return groebner_basis(polys, vars, opt);
 }
 
@@ -150,7 +165,9 @@ int main(int argc, char *argv[])
         };
         vec_sym vars = {x, y};
         cases.push_back({"sympy_small_elim_lex", [=]() { return compute_basis(polys, vars, MonomialOrder::Lex); }});
+        cases.push_back({"sympy_small_elim_lex_f5b", [=]() { return compute_basis(polys, vars, MonomialOrder::Lex, GroebnerAlgorithm::F5B); }});
         cases.push_back({"sympy_small_elim_degrevlex", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex); }});
+        cases.push_back({"sympy_small_elim_drl_f5b", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex, GroebnerAlgorithm::F5B); }});
     }
 
     // SymPy minpoly benchmark from test_groebnertools.
@@ -162,6 +179,7 @@ int main(int argc, char *argv[])
         };
         vec_sym vars = {x, y, z};
         cases.push_back({"sympy_minpoly_lex", [=]() { return compute_basis(polys, vars, MonomialOrder::Lex); }});
+        cases.push_back({"sympy_minpoly_lex_f5b", [=]() { return compute_basis(polys, vars, MonomialOrder::Lex, GroebnerAlgorithm::F5B); }});
         cases.push_back({"sympy_minpoly_drl_fglm", [=]() { return compute_degrevlex_then_lex(polys, vars); }});
     }
 
@@ -189,7 +207,11 @@ int main(int argc, char *argv[])
         };
         vec_sym vars = {x0, x1, x2};
         cases.push_back({"katsura3_lex", [=]() { return compute_basis(polys, vars, MonomialOrder::Lex); }});
+        cases.push_back({"katsura3_lex_f5b", [=]() { return compute_basis(polys, vars, MonomialOrder::Lex, GroebnerAlgorithm::F5B); }});
         cases.push_back({"katsura3_drl", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex); }});
+        cases.push_back({"katsura3_drl_f5b", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex, GroebnerAlgorithm::F5B); }});
+        cases.push_back({"katsura3_grlex_mogvw", [=]() { return compute_basis(polys, vars, MonomialOrder::GrLex, GroebnerAlgorithm::MoGVW); }});
+        cases.push_back({"katsura3_gf31_m4gb", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex, GroebnerAlgorithm::M4GB, 31); }});
     }
 
     // Singular-derived toric/binomial case from 01-IMPL-PLAN-GROEBNER.md.
@@ -203,6 +225,7 @@ int main(int argc, char *argv[])
         };
         vec_sym vars = {w, x, y, z};
         cases.push_back({"toric_binomial_drl", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex); }});
+        cases.push_back({"toric_binomial_drl_f5b", [=]() { return compute_basis(polys, vars, MonomialOrder::DegRevLex, GroebnerAlgorithm::F5B); }});
     }
 
     // Inspired by demo_groebner_bench_sympy.py: eliminate two algebraic roots
