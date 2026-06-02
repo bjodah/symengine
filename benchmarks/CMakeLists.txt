@@ -59,6 +59,9 @@ target_link_libraries(symengine_bench symengine)
 add_executable(ntheorybench ntheorybench.cpp)
 target_link_libraries(ntheorybench symengine)
 
+add_executable(groebner_bench groebner_bench.cpp)
+target_link_libraries(groebner_bench symengine)
+
 if (WITH_FLINT)
     add_executable(series_expansion_sincos_flint series_expansion_sincos_flint.cpp)
     target_link_libraries(series_expansion_sincos_flint symengine)
