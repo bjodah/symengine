@@ -140,3 +140,8 @@ add_test(test_tuple ${PROJECT_BINARY_DIR}/test_tuple)
 add_executable(test_tribool test_tribool.cpp)
 target_link_libraries(test_tribool symengine catch)
 add_test(test_tribool ${PROJECT_BINARY_DIR}/test_tribool)
+
+add_executable(test_gruntz test_gruntz.cpp)
+target_link_libraries(test_gruntz symengine catch)
+add_test(test_gruntz ${PROJECT_BINARY_DIR}/test_gruntz)
+

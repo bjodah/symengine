@@ -53,6 +53,7 @@ set(SRC
     fields.cpp
     finitediff.cpp
     functions.cpp
+    gruntz.cpp
     infinity.cpp
     integer.cpp
     logic.cpp
@@ -182,6 +183,7 @@ set(HEADERS
     fields.h
     finitediff.h
     flint_wrapper.h
+    gruntz.h
     functions.h
     infinity.h
     integer.h
