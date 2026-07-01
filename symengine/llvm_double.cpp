@@ -25,12 +25,14 @@
 #include "llvm/IR/Verifier.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/ExecutionEngine/ObjectCache.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include <algorithm>
 #include <cassert>
 #include <memory>
+#include <optional>
 #include <vector>
 #include <fstream>
 
@@ -83,7 +85,8 @@ void LLVMVisitor::init(const vec_basic &x, const Basic &b, bool symbolic_cse,
     init(x, {b.rcp_from_this()}, symbolic_cse, opt_level);
 }
 
-llvm::Function *LLVMVisitor::get_function_type(llvm::LLVMContext *context)
+llvm::Function *LLVMVisitor::get_function_type(llvm::LLVMContext *context,
+                                               const std::string &name)
 {
     std::vector<llvm::Type *> inp;
     for (int i = 0; i < 2; i++) {
@@ -92,7 +95,7 @@ llvm::Function *LLVMVisitor::get_function_type(llvm::LLVMContext *context)
     llvm::FunctionType *function_type = llvm::FunctionType::get(
         llvm::Type::getVoidTy(*context), inp, /*isVarArgs=*/false);
     auto F = llvm::Function::Create(
-        function_type, llvm::Function::InternalLinkage, "symengine_func", mod);
+        function_type, llvm::Function::InternalLinkage, name, mod);
     F->setCallingConv(llvm::CallingConv::C);
 #if (LLVM_VERSION_MAJOR < 5)
     {
@@ -146,23 +149,76 @@ llvm::Function *LLVMVisitor::get_function_type(llvm::LLVMContext *context)
     return F;
 }
 
-void LLVMVisitor::init(const vec_basic &inputs, const vec_basic &outputs,
-                       const bool symbolic_cse, unsigned opt_level)
+void LLVMVisitor::prepare_module(const std::string &target_triple)
 {
     executionengine.reset();
-    llvm::InitializeNativeTarget();
-    llvm::InitializeNativeTargetAsmPrinter();
-    llvm::InitializeNativeTargetAsmParser();
-    context = make_unique<llvm::LLVMContext>();
+    // Release any module retained from a previous (possibly failed) build
+    // before the `context` it lives in is replaced below; a Module must be
+    // destroyed before its LLVMContext. (In the monolithic init the module was
+    // a stack local freed during unwinding, so this was implicit.)
+    module_holder.reset();
+    if (target_triple.empty()) {
+        // Host path: identical to the original monolithic init.
+        llvm::InitializeNativeTarget();
+        llvm::InitializeNativeTargetAsmPrinter();
+        llvm::InitializeNativeTargetAsmParser();
+        context = make_unique<llvm::LLVMContext>();
+
+        // Create some module to put our function into it.
+        module_holder = make_unique<llvm::Module>("SymEngine", *context.get());
+        module_holder->setDataLayout("");
+        mod = module_holder.get();
+    } else {
+        // Cross-target path (e.g. NVPTX): build IR for `target_triple` without
+        // jitting. The TargetMachine here is local/throwaway -- it is only used
+        // to obtain the correct datalayout for the triple; downstream emission
+        // (later phases) constructs its own TargetMachine.
+        llvm::InitializeAllTargets();
+        llvm::InitializeAllTargetMCs();
+        llvm::InitializeAllAsmPrinters();
+        context = make_unique<llvm::LLVMContext>();
+
+        module_holder = make_unique<llvm::Module>("SymEngine", *context.get());
+#if (LLVM_VERSION_MAJOR >= 21)
+        module_holder->setTargetTriple(llvm::Triple(target_triple));
+#else
+        module_holder->setTargetTriple(target_triple);
+#endif
+        mod = module_holder.get();
+
+        std::string error;
+        const llvm::Target *target
+            = llvm::TargetRegistry::lookupTarget(target_triple, error);
+        if (!target) {
+            throw SymEngineException(
+                "LLVMVisitor::prepare_module: could not look up target for "
+                "triple '"
+                + target_triple + "': " + error);
+        }
+        llvm::TargetOptions target_options;
+        std::unique_ptr<llvm::TargetMachine> target_machine(
+            target->createTargetMachine(llvm::Triple(target_triple),
+                                        /*CPU=*/"", /*Features=*/"",
+                                        target_options,
+                                        std::optional<llvm::Reloc::Model>()));
+        if (!target_machine) {
+            throw SymEngineException(
+                "LLVMVisitor::prepare_module: could not create TargetMachine "
+                "for triple '"
+                + target_triple + "'.");
+        }
+        module_holder->setDataLayout(target_machine->createDataLayout());
+    }
+}
+
+llvm::Function *LLVMVisitor::build_function(const vec_basic &inputs,
+                                            const vec_basic &outputs,
+                                            bool symbolic_cse,
+                                            const std::string &name)
+{
     symbols = inputs;
 
-    // Create some module to put our function into it.
-    std::unique_ptr<llvm::Module> module
-        = make_unique<llvm::Module>("SymEngine", *context.get());
-    module->setDataLayout("");
-    mod = module.get();
-
-    auto F = get_function_type(context.get());
+    auto F = get_function_type(context.get(), name);
 
     // Add a basic block to the function. As before, it automatically
     // inserts
@@ -236,6 +292,12 @@ void LLVMVisitor::init(const vec_basic &inputs, const vec_basic &outputs,
     // Validate the generated code, checking for consistency.
     llvm::verifyFunction(*F, &llvm::outs());
 
+    current_function_ = F;
+    return F;
+}
+
+void LLVMVisitor::optimize_module(unsigned opt_level)
+{
     //     std::cout << "LLVM IR" << std::endl;
     // // #if (LLVM_VERSION_MAJOR < 5)
     // //     module->dump();
@@ -282,16 +344,19 @@ void LLVMVisitor::init(const vec_basic &inputs, const vec_basic &outputs,
         FPM = PB.buildFunctionSimplificationPipeline(
             pb_opt_level, llvm::ThinOrFullLTOPhase::None);
 #endif
-        FPM.run(*F, FAM);
+        FPM.run(*current_function_, FAM);
     }
 
     // std::cout << "Optimized LLVM IR" << std::endl;
     // module->print(llvm::errs(), nullptr);
+}
 
+void LLVMVisitor::jit_and_capture(unsigned opt_level)
+{
     // Now we create the JIT.
     std::string error;
     executionengine = std::unique_ptr<llvm::ExecutionEngine>(
-        llvm::EngineBuilder(std::move(module))
+        llvm::EngineBuilder(std::move(module_holder))
             .setEngineKind(llvm::EngineKind::Kind::JIT)
             .setOptLevel(static_cast<CodeGenOptLevel>(opt_level))
             .setErrorStr(&error)
@@ -327,10 +392,33 @@ void LLVMVisitor::init(const vec_basic &inputs, const vec_basic &outputs,
     executionengine->finalizeObject();
 
     // Get the symbol's address
-    func = (intptr_t)executionengine->getPointerToFunction(F);
+    func = (intptr_t)executionengine->getPointerToFunction(current_function_);
     symbol_ptrs.clear();
     replacement_symbol_ptrs.clear();
     symbols.clear();
+}
+
+void LLVMVisitor::init(const vec_basic &inputs, const vec_basic &outputs,
+                       const bool symbolic_cse, unsigned opt_level)
+{
+    prepare_module("");
+    build_function(inputs, outputs, symbolic_cse, "symengine_func");
+    optimize_module(opt_level);
+    jit_and_capture(opt_level);
+}
+
+void LLVMVisitor::init_module_only(const vec_basic &inputs,
+                                   const vec_basic &outputs, bool symbolic_cse,
+                                   unsigned opt_level,
+                                   const std::string &target_triple,
+                                   const std::string &func_name)
+{
+    prepare_module(target_triple);
+    build_function(inputs, outputs, symbolic_cse, func_name);
+    optimize_module(opt_level);
+    // Intentionally does NOT jit and does NOT clear
+    // symbol_ptrs/replacement_symbol_ptrs/symbols/context/mod: the module must
+    // stay alive and usable for downstream post-processing (PTX emission).
 }
 
 LLVMDoubleVisitor::LLVMDoubleVisitor() = default;
@@ -990,7 +1078,7 @@ void LLVMVisitor::loads(const std::string &s)
     // Since we know where the function is stored that's enough
     // llvm::ObjectCache is designed for caching objects, but it
     // is used here for loading one specific object.
-    auto F = get_function_type(context.get());
+    auto F = get_function_type(context.get(), "symengine_func");
 
     std::string error;
     executionengine = std::unique_ptr<llvm::ExecutionEngine>(

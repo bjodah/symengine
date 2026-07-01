@@ -40,12 +40,35 @@ protected:
     // Following are invalid after the init call.
     IRBuilder *builder;
     llvm::Module *mod;
+    // Owns the module while it is being built (before it is either moved into
+    // the JIT by `jit_and_capture`, or retained by `init_module_only`). `mod`
+    // points into this.
+    std::unique_ptr<llvm::Module> module_holder;
+    // The function created by the most recent `build_function` call.
+    llvm::Function *current_function_ = nullptr;
     std::string membuffer;
-    llvm::Function *get_function_type(llvm::LLVMContext *);
+    llvm::Function *get_function_type(llvm::LLVMContext *,
+                                      const std::string &name);
     virtual llvm::Type *get_float_type(llvm::LLVMContext *) = 0;
     // Subclasses might want to call e.g.
     // llvm::ExecutionEngine::InstallLazyFunctionCreator
     virtual void modify_execution_engine(llvm::ExecutionEngine *) {}
+
+    // Composable steps that `init`/`init_module_only` are built from. They share
+    // `context`/`module_holder`/`mod`/`current_function_` state.
+    //
+    // `target_triple == ""` => host behavior (InitializeNativeTarget + empty
+    // datalayout, as the monolithic init did). A non-empty triple (e.g.
+    // "nvptx64-nvidia-cuda") initializes all targets and sets the module's
+    // triple + datalayout from a TargetMachine for that triple, without jitting.
+    void prepare_module(const std::string &target_triple);
+    llvm::Function *build_function(const vec_basic &inputs,
+                                   const vec_basic &outputs, bool symbolic_cse,
+                                   const std::string &name);
+    void optimize_module(unsigned opt_level);
+    // The host JIT tail: moves the owned module into the ExecutionEngine,
+    // finalizes, captures `func`, and clears the build-time bookkeeping.
+    void jit_and_capture(unsigned opt_level);
 
 public:
     LLVMVisitor();
@@ -55,6 +78,26 @@ public:
               const bool symbolic_cse = false, unsigned opt_level = 3);
     void init(const vec_basic &inputs, const vec_basic &outputs,
               const bool symbolic_cse = false, unsigned opt_level = 3);
+    // Build the IR module only (no JIT). Retains ownership of the built module
+    // and LLVMContext so a downstream class can post-process it (e.g. emit PTX
+    // for `target_triple == "nvptx64-nvidia-cuda"`). Unlike `init`, this does
+    // NOT clear `symbol_ptrs`/`context`/`mod`.
+    void init_module_only(const vec_basic &inputs, const vec_basic &outputs,
+                          bool symbolic_cse, unsigned opt_level,
+                          const std::string &target_triple,
+                          const std::string &func_name = "symengine_residual");
+    llvm::Module *get_module() const
+    {
+        return mod;
+    }
+    llvm::Function *get_function() const
+    {
+        return current_function_;
+    }
+    llvm::LLVMContext &get_context() const
+    {
+        return *context;
+    }
     // Helper functions
     void set_double(double d);
     llvm::Function *get_external_function(const std::string &name,
