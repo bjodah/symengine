@@ -151,6 +151,17 @@ llvm::Function *LLVMVisitor::get_function_type(llvm::LLVMContext *context,
 
 void LLVMVisitor::prepare_module(const std::string &target_triple)
 {
+    // Clear all per-build state before touching the module/context, so every
+    // build (`init` or `init_module_only`) starts from a clean slate regardless
+    // of what a previous (possibly failed, or non-jitted) build left behind.
+    // `build_function` appends to `symbol_ptrs` and symbol lookup reads from the
+    // front, and these llvm::Value*s belong to the `context` that is replaced
+    // below; leaving them would reuse pointers owned by a destroyed LLVMContext.
+    symbol_ptrs.clear();
+    replacement_symbol_ptrs.clear();
+    symbols.clear();
+    current_function_ = nullptr;
+
     executionengine.reset();
     // Release any module retained from a previous (possibly failed) build
     // before the `context` it lives in is replaced below; a Module must be
@@ -289,8 +300,18 @@ llvm::Function *LLVMVisitor::build_function(const vec_basic &inputs,
     // Create the return instruction and add it to the basic block
     builder->CreateRetVoid();
 
-    // Validate the generated code, checking for consistency.
-    llvm::verifyFunction(*F, &llvm::outs());
+    // Validate the generated code, checking for consistency. On failure, capture
+    // the verifier's diagnostic into a string and throw, rather than printing to
+    // stdout and continuing with a broken function.
+    {
+        std::string verify_error;
+        llvm::raw_string_ostream verify_os(verify_error);
+        if (llvm::verifyFunction(*F, &verify_os)) {
+            throw SymEngineException(
+                "LLVMVisitor::build_function: verification of function '" + name
+                + "' failed: " + verify_os.str());
+        }
+    }
 
     current_function_ = F;
     return F;
@@ -416,9 +437,11 @@ void LLVMVisitor::init_module_only(const vec_basic &inputs,
     prepare_module(target_triple);
     build_function(inputs, outputs, symbolic_cse, func_name);
     optimize_module(opt_level);
-    // Intentionally does NOT jit and does NOT clear
-    // symbol_ptrs/replacement_symbol_ptrs/symbols/context/mod: the module must
-    // stay alive and usable for downstream post-processing (PTX emission).
+    // Intentionally does NOT jit: the module/context must stay alive and usable
+    // for downstream post-processing (PTX emission). Per-build state
+    // (symbol_ptrs/replacement_symbol_ptrs/symbols/current_function_) is cleared
+    // at the START of the next prepare_module, so nothing carries over into a
+    // subsequent build on this visitor.
 }
 
 LLVMDoubleVisitor::LLVMDoubleVisitor() = default;

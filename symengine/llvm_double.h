@@ -80,8 +80,11 @@ public:
               const bool symbolic_cse = false, unsigned opt_level = 3);
     // Build the IR module only (no JIT). Retains ownership of the built module
     // and LLVMContext so a downstream class can post-process it (e.g. emit PTX
-    // for `target_triple == "nvptx64-nvidia-cuda"`). Unlike `init`, this does
-    // NOT clear `symbol_ptrs`/`context`/`mod`.
+    // for `target_triple == "nvptx64-nvidia-cuda"`). `prepare_module` clears the
+    // per-build state (`symbol_ptrs`/`replacement_symbol_ptrs`/`symbols`/
+    // `current_function_`) up front, so unlike `init` this leaves `context`/`mod`
+    // and the built function alive for post-processing without stale carry-over
+    // from a previous build.
     void init_module_only(const vec_basic &inputs, const vec_basic &outputs,
                           bool symbolic_cse, unsigned opt_level,
                           const std::string &target_triple,
