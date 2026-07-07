@@ -245,8 +245,13 @@ bool eq(const Basic &a, const Basic &b);
 //! Checks inequality for `a` and `b`
 bool neq(const Basic &a, const Basic &b);
 
-/*! Returns true if `b` is exactly of type `T`. Example:
-  `is_a<Symbol>(b)` : true if "b" is of type Symbol
+/*! Returns true if `b` has the SymEngine type code declared by `T`. Example:
+  `is_a<Symbol>(b)` : true if "b" is of type Symbol.
+
+  External subclasses of an extension type such as `FunctionWrapper` inherit
+  their base class's type code, so `is_a<ExternalSubclass>` cannot
+  discriminate them. Use the wrapper-specific RTTI helper declared in
+  `functions.h` for that case.
 */
 template <class T>
 bool is_a(const Basic &b);

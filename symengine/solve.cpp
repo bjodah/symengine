@@ -557,34 +557,140 @@ RCP<const Set> solve(const RCP<const Basic> &f, const RCP<const Symbol> &sym,
     return solve_rational(f, sym, domain);
 }
 
-vec_basic linsolve_helper(const DenseMatrix &A, const DenseMatrix &b)
+namespace
 {
-    DenseMatrix res(A.nrows(), 1);
-    int fail = fraction_free_gauss_jordan_solve(A, b, res);
-    if (fail) {
-        return {};
+LinearSolveResult linsolve_detailed_helper(DenseMatrix A, DenseMatrix b)
+{
+    if (b.nrows() != A.nrows() or b.ncols() != 1) {
+        throw SymEngineException(
+            "Expected one right-hand-side column with the same number of "
+            "rows as the coefficient matrix.");
     }
-    vec_basic fs;
-    for (unsigned i = 0; i < res.nrows(); i++) {
-        fs.push_back(res.get(i, 0));
+
+    unsigned pivot_row = 0;
+    std::vector<unsigned> pivot_columns;
+    for (unsigned col = 0; col < A.ncols() and pivot_row < A.nrows(); ++col) {
+        unsigned candidate = pivot_row;
+        while (candidate < A.nrows() and eq(*A.get(candidate, col), *zero)) {
+            ++candidate;
+        }
+        if (candidate == A.nrows()) {
+            continue;
+        }
+        if (candidate != pivot_row) {
+            row_exchange_dense(A, candidate, pivot_row);
+            row_exchange_dense(b, candidate, pivot_row);
+        }
+
+        auto pivot = A.get(pivot_row, col);
+        for (unsigned row = pivot_row + 1; row < A.nrows(); ++row) {
+            auto entry = A.get(row, col);
+            if (eq(*entry, *zero)) {
+                continue;
+            }
+            for (unsigned trailing_col = col + 1; trailing_col < A.ncols();
+                 ++trailing_col) {
+                A.set(row, trailing_col,
+                      sub(mul(pivot, A.get(row, trailing_col)),
+                          mul(entry, A.get(pivot_row, trailing_col))));
+            }
+            b.set(row, 0,
+                  sub(mul(pivot, b.get(row, 0)),
+                      mul(entry, b.get(pivot_row, 0))));
+            A.set(row, col, zero);
+        }
+        pivot_columns.push_back(col);
+        ++pivot_row;
     }
-    return fs;
+
+    bool inconsistent = false;
+    for (unsigned row = 0; row < A.nrows(); ++row) {
+        bool zero_coefficients = true;
+        for (unsigned col = 0; col < A.ncols(); ++col) {
+            if (not eq(*A.get(row, col), *zero)) {
+                zero_coefficients = false;
+                break;
+            }
+        }
+        if (zero_coefficients and not eq(*b.get(row, 0), *zero)) {
+            inconsistent = true;
+            break;
+        }
+    }
+
+    unsigned coefficient_rank = numeric_cast<unsigned>(pivot_columns.size());
+    LinearSolveResult result{
+        inconsistent                   ? LinearSolveStatus::Inconsistent
+        : coefficient_rank < A.ncols() ? LinearSolveStatus::Underdetermined
+                                       : LinearSolveStatus::Unique,
+        {},
+        coefficient_rank,
+        coefficient_rank + (inconsistent ? 1u : 0u),
+        std::move(pivot_columns),
+    };
+
+    if (result.status != LinearSolveStatus::Unique) {
+        return result;
+    }
+
+    result.solution.assign(A.ncols(), zero);
+    for (unsigned pivot_index = coefficient_rank; pivot_index > 0;
+         --pivot_index) {
+        unsigned row = pivot_index - 1;
+        unsigned col = result.pivot_columns[row];
+        auto rhs = b.get(row, 0);
+        for (unsigned trailing_col = col + 1; trailing_col < A.ncols();
+             ++trailing_col) {
+            rhs = sub(rhs, mul(A.get(row, trailing_col),
+                               result.solution[trailing_col]));
+        }
+        result.solution[col] = div(rhs, A.get(row, col));
+    }
+    return result;
+}
+} // namespace
+
+LinearSolveResult linsolve_detailed(const DenseMatrix &system,
+                                    const vec_sym &syms)
+{
+    if (system.ncols() != syms.size() + 1) {
+        throw SymEngineException(
+            "Expected an augmented matrix with one more column than symbols.");
+    }
+
+    DenseMatrix A(system.nrows(), numeric_cast<unsigned>(syms.size()));
+    DenseMatrix b(system.nrows(), 1);
+    for (unsigned row = 0; row < system.nrows(); ++row) {
+        for (unsigned col = 0; col < A.ncols(); ++col) {
+            A.set(row, col, system.get(row, col));
+        }
+        b.set(row, 0, system.get(row, A.ncols()));
+    }
+    return linsolve_detailed_helper(std::move(A), std::move(b));
+}
+
+LinearSolveResult linsolve_detailed(const vec_basic &system,
+                                    const vec_sym &syms)
+{
+    auto mat = linear_eqns_to_matrix(system, syms);
+    return linsolve_detailed_helper(std::move(mat.first),
+                                    std::move(mat.second));
 }
 
 vec_basic linsolve(const DenseMatrix &system, const vec_sym &syms)
 {
-    DenseMatrix A(system.nrows(), system.ncols() - 1), b(system.nrows(), 1);
-    system.submatrix(A, 0, 0, system.nrows() - 1, system.ncols() - 2);
-    system.submatrix(b, 0, system.ncols() - 1, system.nrows() - 1,
-                     system.ncols() - 1);
-    return linsolve_helper(A, b);
+    auto result = linsolve_detailed(system, syms);
+    return result.status == LinearSolveStatus::Unique
+               ? std::move(result.solution)
+               : vec_basic{};
 }
 
 vec_basic linsolve(const vec_basic &system, const vec_sym &syms)
 {
-    auto mat = linear_eqns_to_matrix(system, syms);
-    DenseMatrix A = mat.first, b = mat.second;
-    return linsolve_helper(A, b);
+    auto result = linsolve_detailed(system, syms);
+    return result.status == LinearSolveStatus::Unique
+               ? std::move(result.solution)
+               : vec_basic{};
 }
 
 set_basic get_set_from_vec(const vec_sym &syms)

@@ -3797,6 +3797,42 @@ public:
     }
 };
 
+class MyCos : public FunctionWrapper
+{
+public:
+    MyCos(RCP<const Basic> arg) : FunctionWrapper("MyCos", arg) {}
+    RCP<const Number> eval(long bits) const
+    {
+        return real_double(::cos(eval_double(*get_vec()[0])));
+    }
+    RCP<const Basic> create(const vec_basic &v) const
+    {
+        return make_rcp<MyCos>(v[0]);
+    }
+    RCP<const Basic> diff_impl(const RCP<const Symbol> &x) const
+    {
+        return neg(mul(sin(get_vec()[0]), get_vec()[0]->diff(x)));
+    }
+};
+
+#if HAVE_SYMENGINE_RTTI
+TEST_CASE("FunctionWrapper: exact external subclass checks", "[functions]")
+{
+    auto x = symbol("x");
+    RCP<const Basic> my_sin = make_rcp<MySin>(x);
+    RCP<const Basic> my_cos = make_rcp<MyCos>(x);
+
+    REQUIRE(is_a<FunctionWrapper>(*my_sin));
+    REQUIRE(is_a<FunctionWrapper>(*my_cos));
+    REQUIRE(is_a_sub<MySin>(*my_sin));
+    REQUIRE(not is_a_sub<MySin>(*my_cos));
+    REQUIRE(is_a_function_wrapper<MySin>(*my_sin));
+    REQUIRE(not is_a_function_wrapper<MySin>(*my_cos));
+    REQUIRE(is_a_function_wrapper<MyCos>(*my_cos));
+    REQUIRE(not is_a_function_wrapper<MyCos>(*my_sin));
+}
+#endif
+
 TEST_CASE("FunctionWrapper: functions", "[functions]")
 {
     RCP<const Symbol> x = symbol("x");

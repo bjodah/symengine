@@ -86,8 +86,38 @@ RCP<const Set> invertComplex(const RCP<const Basic> &fX,
                              const RCP<const Dummy> &nD = dummy("n"),
                              const RCP<const Set> &domain = universalset());
 
-// Solver for System of Equations
-// TODO : solve systems that have infinitely many solutions or no solution.
+//! Classification of a linear system under structural zero testing.
+enum class LinearSolveStatus {
+    Unique,
+    Underdetermined,
+    Inconsistent,
+};
+
+//! Detailed result of solving a linear system.
+//!
+//! `solution` is populated only for a unique system. For symbolic matrices,
+//! any expression that is not structurally equal to zero is treated as a
+//! nonzero pivot; parameter values that make such a pivot zero may therefore
+//! specialize this generic result to a lower rank.
+struct LinearSolveResult {
+    LinearSolveStatus status;
+    vec_basic solution;
+    unsigned coefficient_rank;
+    unsigned augmented_rank;
+    std::vector<unsigned> pivot_columns;
+};
+
+//! Solve an augmented matrix `(A|b)` and report whether its solution is
+//! unique, underdetermined, or inconsistent.
+LinearSolveResult linsolve_detailed(const DenseMatrix &system,
+                                    const vec_sym &syms);
+
+//! Convert linear equations to matrix form and return a detailed solve result.
+LinearSolveResult linsolve_detailed(const vec_basic &system,
+                                    const vec_sym &syms);
+
+// Solver for System of Equations. These compatibility overloads return the
+// solution for a unique system and an empty vector otherwise.
 // Input as an Augmented Matrix. (A|b) to solve `Ax=b`.
 vec_basic linsolve(const DenseMatrix &system, const vec_sym &syms);
 

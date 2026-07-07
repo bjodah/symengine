@@ -103,7 +103,8 @@ public:
     }
     //! Method to construct classes with canonicalization
     virtual RCP<const Basic> create(const RCP<const Basic> &a,
-                                    const RCP<const Basic> &b) const = 0;
+                                    const RCP<const Basic> &b) const
+        = 0;
 
     inline RCP<const Basic> create(const vec_basic &b) const
     {
@@ -264,21 +265,21 @@ class TrigBase : public OneArgFunction
 {
 public:
     //! Constructor
-    TrigBase(RCP<const Basic> arg) : OneArgFunction(arg){};
+    TrigBase(RCP<const Basic> arg) : OneArgFunction(arg) {};
 };
 
 class TrigFunction : public TrigBase
 {
 public:
     //! Constructor
-    TrigFunction(RCP<const Basic> arg) : TrigBase(arg){};
+    TrigFunction(RCP<const Basic> arg) : TrigBase(arg) {};
 };
 
 class InverseTrigFunction : public TrigBase
 {
 public:
     //! Constructor
-    InverseTrigFunction(RCP<const Basic> arg) : TrigBase(arg){};
+    InverseTrigFunction(RCP<const Basic> arg) : TrigBase(arg) {};
 };
 
 /*! \return `true` if `arg` is of form `m + n*pi` where `n` is a rational
@@ -665,7 +666,12 @@ RCP<const Basic> function_symbol(std::string name, const RCP<const Basic> &arg);
 RCP<const Basic> function_symbol(std::string name, const vec_basic &arg);
 
 /*! Use this class to define custom functions by overriding
- *  the defaut behaviour for create, eval, diff, __eq__, compare etc.
+ *  the default behaviour for create, eval, diff, __eq__, compare etc.
+ *
+ *  External subclasses inherit `FunctionWrapper`'s `TypeID`. Consequently,
+ *  `is_a<ExternalSubclass>` must not be used to discriminate wrapper
+ *  subclasses. With RTTI enabled, use `is_a_function_wrapper<T>` for an exact
+ *  subclass check or `is_a_sub<T>` for an inheritance check.
  * */
 
 class FunctionWrapper : public FunctionSymbol
@@ -678,6 +684,23 @@ public:
     virtual RCP<const Number> eval(long bits) const = 0;
     virtual RCP<const Basic> diff_impl(const RCP<const Symbol> &s) const = 0;
 };
+
+#if HAVE_SYMENGINE_RTTI
+//! Return true when `value` is exactly the external `FunctionWrapper`
+//! subclass `T`.
+//!
+//! This helper is available only in RTTI-enabled builds because external
+//! wrapper subclasses share the `SYMENGINE_FUNCTIONWRAPPER` type code.
+template <class T>
+bool is_a_function_wrapper(const Basic &value)
+{
+    static_assert(std::is_base_of<FunctionWrapper, T>::value,
+                  "T must derive from FunctionWrapper");
+    static_assert(not std::is_same<FunctionWrapper, T>::value,
+                  "Use is_a<FunctionWrapper> to test the base type");
+    return typeid(value) == typeid(T);
+}
+#endif
 
 /*! Derivative operator
  *  Derivative(f, [x, y, ...]) represents a derivative of `f` with respect to

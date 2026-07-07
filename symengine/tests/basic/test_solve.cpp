@@ -29,7 +29,9 @@ using SymEngine::interval;
 using SymEngine::Interval;
 using SymEngine::is_a;
 using SymEngine::linear_eqns_to_matrix;
+using SymEngine::LinearSolveStatus;
 using SymEngine::linsolve;
+using SymEngine::linsolve_detailed;
 using SymEngine::logical_and;
 using SymEngine::mul;
 using SymEngine::Ne;
@@ -495,6 +497,91 @@ TEST_CASE("linsolve", "[Solve]")
 
         REQUIRE(eq(*solns2[0], *s1));
         REQUIRE(eq(*solns2[1], *s2));
+    }
+}
+
+TEST_CASE("linsolve detailed diagnostics", "[Solve]")
+{
+    auto x = symbol("x"), y = symbol("y"), a = symbol("a");
+
+    SECTION("overdetermined unique system")
+    {
+        auto result = linsolve_detailed({sub(add(x, y), integer(3)),
+                                         sub(sub(x, y), one),
+                                         sub(mul(integer(2), x), integer(4))},
+                                        {x, y});
+        REQUIRE(result.status == LinearSolveStatus::Unique);
+        REQUIRE(result.coefficient_rank == 2);
+        REQUIRE(result.augmented_rank == 2);
+        REQUIRE(result.pivot_columns == std::vector<unsigned>{0, 1});
+        REQUIRE(result.solution.size() == 2);
+        REQUIRE(eq(*result.solution[0], *integer(2)));
+        REQUIRE(eq(*result.solution[1], *one));
+    }
+
+    SECTION("consistent rank-deficient system")
+    {
+        vec_basic equations{
+            sub(add(x, y), one),
+            sub(add(mul(integer(2), x), mul(integer(2), y)), integer(2)),
+        };
+        auto result = linsolve_detailed(equations, {x, y});
+        REQUIRE(result.status == LinearSolveStatus::Underdetermined);
+        REQUIRE(result.coefficient_rank == 1);
+        REQUIRE(result.augmented_rank == 1);
+        REQUIRE(result.pivot_columns == std::vector<unsigned>{0});
+        REQUIRE(result.solution.empty());
+        REQUIRE(linsolve(equations, {x, y}).empty());
+    }
+
+    SECTION("inconsistent system")
+    {
+        vec_basic equations{
+            sub(add(x, y), one),
+            sub(add(mul(integer(2), x), mul(integer(2), y)), integer(3)),
+        };
+        auto result = linsolve_detailed(equations, {x, y});
+        REQUIRE(result.status == LinearSolveStatus::Inconsistent);
+        REQUIRE(result.coefficient_rank == 1);
+        REQUIRE(result.augmented_rank == 2);
+        REQUIRE(result.solution.empty());
+        REQUIRE(linsolve(equations, {x, y}).empty());
+    }
+
+    SECTION("fewer equations than variables")
+    {
+        auto result = linsolve_detailed({sub(add(x, y), one)}, {x, y});
+        REQUIRE(result.status == LinearSolveStatus::Underdetermined);
+        REQUIRE(result.coefficient_rank == 1);
+        REQUIRE(result.augmented_rank == 1);
+    }
+
+    SECTION("zero row and row permutation")
+    {
+        DenseMatrix system(
+            3, 3, {zero, zero, zero, zero, one, integer(2), one, zero, one});
+        auto result = linsolve_detailed(system, {x, y});
+        REQUIRE(result.status == LinearSolveStatus::Unique);
+        REQUIRE(result.coefficient_rank == 2);
+        REQUIRE(result.solution.size() == 2);
+        REQUIRE(eq(*result.solution[0], *one));
+        REQUIRE(eq(*result.solution[1], *integer(2)));
+    }
+
+    SECTION("symbolic pivot is generically nonzero")
+    {
+        auto result = linsolve_detailed({sub(mul(a, x), one)}, {x});
+        REQUIRE(result.status == LinearSolveStatus::Unique);
+        REQUIRE(result.coefficient_rank == 1);
+        REQUIRE(result.solution.size() == 1);
+        REQUIRE(eq(*result.solution[0], *div(one, a)));
+    }
+
+    SECTION("augmented matrix dimensions are validated")
+    {
+        DenseMatrix malformed(1, 2, {one, one});
+        CHECK_THROWS_AS(linsolve_detailed(malformed, {x, y}),
+                        SymEngineException);
     }
 }
 
