@@ -253,9 +253,9 @@ inline bool cooperative_state_cmpxchg_decrement(uintptr_t *ptr, uintptr_t *cmp,
 // and decrements the sentinel like any other count.
 //
 // A single top-of-range sentinel makes that fatal. `~0u + 1` is 0, `0 + 1` is
-// 1, and the next destruction deletes a process-global singleton. So the sentinel
-// is chosen to be a value old inline code handles *harmlessly*: a large biased
-// count, tested by range rather than by equality.
+// 1, and the next destruction deletes a process-global singleton. So the
+// sentinel is chosen to be a value old inline code handles *harmlessly*: a
+// large biased count, tested by range rather than by equality.
 //
 //   count < lo            ordinary, mortal, counted by everybody
 //   lo <= count < hi      immortal: this header elides the read-modify-write
