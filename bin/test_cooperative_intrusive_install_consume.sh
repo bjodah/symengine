@@ -54,8 +54,24 @@ echo "=== Building consumer"
 cmake --build "${EXT_BUILD_DIR}" -j"$(nproc)"
 
 # ── 4. Run the Python smoke test ────────────────────────────────────
+# nanobind reports instances still alive at interpreter shutdown on stderr and
+# leaves the exit status alone, so the stream is part of the result here.  A
+# binding that never gives the immortal constants' wrappers back leaks exactly
+# that way, silently: the objects are never deleted, so nothing crashes and
+# nothing fails -- there is just a Python object attached to a C++ static for
+# the life of the process.
 echo "=== Running consumer smoke test"
-PYTHONPATH="${EXT_BUILD_DIR}" python "${CONSUME_DIR}/smoke.py"
+SMOKE_ERR="${BUILD_ROOT}/smoke.stderr"
+if ! PYTHONPATH="${EXT_BUILD_DIR}" python "${CONSUME_DIR}/smoke.py" \
+        2>"${SMOKE_ERR}"; then
+    cat "${SMOKE_ERR}" >&2
+    exit 1
+fi
+cat "${SMOKE_ERR}" >&2
+if grep -q "nanobind: leaked" "${SMOKE_ERR}"; then
+    echo "=== FAIL: instances were still attached at interpreter shutdown" >&2
+    exit 1
+fi
 
 echo "=== SUCCESS: cooperative_intrusive install-consume test passed"
 rm -rf "${BUILD_ROOT}"
