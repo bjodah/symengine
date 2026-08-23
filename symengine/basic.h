@@ -96,11 +96,27 @@ class Symbol;
 class Basic : public EnableRCPFromThis<Basic>
 {
 private:
-//! Private variables
-// The hash_ is defined as mutable, because its value is initialized to 0
-// in the constructor and then it can be changed in Basic::hash() to the
-// current hash (which is always the same for the given instance). The
-// state of the instance does not change, so we define hash_ as mutable.
+    //! Private variables
+    // The hash_ is defined as mutable, because its value is initialized to 0
+    // in the constructor and then it can be changed in Basic::hash() to the
+    // current hash (which is always the same for the given instance). The
+    // state of the instance does not change, so we define hash_ as mutable.
+    //
+    // In a WITH_SYMENGINE_THREAD_SAFE build this is an atomic, because two
+    // threads that merely *read* the same shared expression can both reach the
+    // memoising store in Basic::hash(), and on a plain member that is a data
+    // race. **Relaxed** ordering is what that discipline needs and all it
+    // needs: the hash is deterministic per instance, so a duplicated
+    // concurrent computation stores the identical value, and the value is
+    // itself the whole payload -- no other memory is published through it, so
+    // there is nothing for an acquire/release pair to order.
+    //
+    // A build without WITH_SYMENGINE_THREAD_SAFE has declared that it does not
+    // share objects across threads, and gets the plain member. That is the
+    // whole meaning of the flag, and a fork that spawns threads (this one
+    // does -- see the G-4 concurrency tests) is expected to set it. Anything
+    // else would tax every single-threaded consumer for a guarantee they
+    // asked not to have.
 #if defined(WITH_SYMENGINE_THREAD_SAFE)
     mutable std::atomic<hash_t> hash_; // This holds the hash value
 #else

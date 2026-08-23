@@ -41,6 +41,13 @@ target_link_libraries(symbench symengine)
 add_executable(lwbench lwbench.cpp)
 target_link_libraries(lwbench symengine)
 
+add_executable(rcp_scaling rcp_scaling.cpp)
+target_link_libraries(rcp_scaling symengine)
+find_package(Threads)
+if (Threads_FOUND)
+    target_link_libraries(rcp_scaling Threads::Threads)
+endif()
+
 add_executable(expand6 expand6.cpp)
 target_link_libraries(expand6 symengine)
 

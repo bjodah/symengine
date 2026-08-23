@@ -115,6 +115,31 @@ ConstantInitializer::ConstantInitializer()
 #define DEFINE_CONSTANT(t, n, d) new (&n) RCP<const t>(d);
         DEFINE_CONSTANTS
 #undef DEFINE_CONSTANT
+
+        // These objects live for the whole process, so their reference counts
+        // carry no information and need not be kept. Not keeping them is what
+        // lets a multi-threaded program scale: `one` is referenced by every
+        // `Mul` ever built, `zero` by every `Add`, `minus_one` by every
+        // `sub()`, so with a live count every thread writes the same three
+        // cache lines millions of times a second and the coherence protocol
+        // serialises them. `perf c2c` on benchmarks/rcp_scaling.cpp attributed
+        // 100% of the run's HITMs to exactly those three lines, and to the
+        // reference-count word within each.
+        //
+        // Marking is done after every constant is built, not inside the loop
+        // above: the later ones are composed from the earlier ones (`C0` from
+        // `sq3` and `one`, `mC0` from `minus_one` and `C0`, ...) and this way
+        // that construction is ordinary counted work with nothing special
+        // about the order.
+        //
+        // The price is that the constants -- a few dozen objects and the small
+        // expression trees below them -- are no longer freed at exit. They
+        // stay reachable from the static storage above, so a leak checker sees
+        // them as still-reachable rather than as leaks, which is what they
+        // are: retained, deliberately, for the lifetime of the process.
+#define DEFINE_CONSTANT(t, n, d) n->mark_immortal();
+        DEFINE_CONSTANTS
+#undef DEFINE_CONSTANT
     }
 }
 

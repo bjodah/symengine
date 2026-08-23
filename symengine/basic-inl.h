@@ -4,12 +4,33 @@
 namespace SymEngine
 {
 
+// Lazily memoised; see the comment on Basic::hash_ for why the thread-safe
+// configuration needs an atomic at all. Note that an instance whose hash
+// happens to be 0 is recomputed on every call; that has always been so and is
+// deliberately left alone here.
+#if defined(WITH_SYMENGINE_THREAD_SAFE)
+// The load and the store are spelled with an **explicit** relaxed ordering
+// rather than through `operator hash_t` / `operator=`, whose implicit
+// seq_cst would put a needless barrier on a value that publishes no other
+// memory. This is strictly better than the implicit form and is an
+// upstream-contribution candidate.
+inline hash_t Basic::hash() const
+{
+    hash_t h = hash_.load(std::memory_order_relaxed);
+    if (h == 0) {
+        h = __hash__();
+        hash_.store(h, std::memory_order_relaxed);
+    }
+    return h;
+}
+#else
 inline hash_t Basic::hash() const
 {
     if (hash_ == 0)
         hash_ = __hash__();
     return hash_;
 }
+#endif // WITH_SYMENGINE_THREAD_SAFE
 
 //! \return true if not equal
 inline bool Basic::__neq__(const Basic &o) const
